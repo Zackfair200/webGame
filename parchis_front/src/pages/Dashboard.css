@@ -1,0 +1,68 @@
+/* Estilos globales */
+body {
+  background-color: #f8f9fa; /* Color de fondo más claro */
+}
+
+.card {
+  border-radius: 10px; /* Bordes redondeados en las tarjetas */
+}
+
+.card-header {
+  background-color: #007bff; /* Color de fondo para los encabezados de las tarjetas */
+  color: #fff; /* Color del texto */
+}
+
+.card-body {
+  padding: 1.5rem; /* Espaciado dentro del cuerpo de la tarjeta */
+}
+
+/* Estilos para el botón Logout */
+.logout-button {
+  background-color: #d9534f;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 5px;
+  margin-left: 1rem; /* Espacio entre el botón de logout y el botón de view profile */
+}
+
+.logout-button:hover {
+  background-color: #c9302c;
+}
+
+/* Asegúrate de que el contenedor del perfil tiene una posición relativa */
+.profile-card {
+  position: relative; /* Necesario para el posicionamiento del botón Logout */
+}
+
+.profile-card-buttons {
+  display: flex;
+  justify-content: space-between; /* Espacio entre los botones */
+  align-items: center; /* Alineación vertical de los botones */
+}
+
+.profile-card-buttons .logout-button {
+  margin-left: 0; /* Eliminar margen izquierdo para el botón de logout */
+}
+
+/* Estilos para el botón PLAY */
+.play-button {
+  background-color: #28a745 !important; /* Color de fondo verde para el botón PLAY */
+  color: white !important;
+  border: none !important;
+  padding: 20px 40px !important; /* Tamaño más grande para el botón */
+  font-size: 1.5rem !important; /* Fuente más grande para hacerlo más vistoso */
+  cursor: pointer !important;
+  border-radius: 10px !important; /* Bordes más redondeados */
+  position: fixed !important; /* Posición fija para que se mantenga en la parte inferior */
+  bottom: 30px !important; /* Espacio desde la parte inferior */
+  left: 50% !important; /* Centrado horizontal */
+  transform: translateX(-50%) !important; /* Corrección para centrado */
+  z-index: 1000 !important; /* Asegúrate de que esté por encima de otros elementos */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important; /* Agrega una sombra para destacar el botón */
+}
+
+.play-button:hover {
+  background-color: #218838 !important; /* Color más oscuro al pasar el ratón */
+}

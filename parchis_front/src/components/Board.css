@@ -1,0 +1,70 @@
+/* src/components/Board.css */
+body {
+    background-color: black;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .board-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    margin-top: 150px;
+  }
+  
+  table {
+    margin-right: 20px; /* Añadir margen para separar el dado del tablero */
+    background-color: white;
+    text-align: center;
+    border-collapse: collapse;
+  }
+  
+  td {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    box-sizing: border-box;
+    border: 1px solid black !important;
+
+  }
+  
+  .amarillo {
+    background-color: yellow;
+    border: 1px solid black !important;
+
+  }
+  
+  .verde {
+    background-color: green;
+    border: 1px solid black !important;
+
+  }
+  
+  .azul {
+    background-color: blue;
+    border: 1px solid black !important;
+
+  }
+  
+  .rojo {
+    background-color: red;
+    border: 1px solid black !important;
+
+  }
+  
+  #vacio {
+    background-color: black;
+    border: 1px solid black !important;
+
+  }
+  
+  img {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .dice-container {
+    margin-top: 20px;
+  }
+  

@@ -7,6 +7,7 @@ const Board = () => {
   const [diceValue, setDiceValue] = useState(1);
   const [isModalOpen, setModalOpen] = useState(false); // Estado para el modal
   const [team, setTeam] = useState(null); // Estado para el equipo seleccionado
+  const [selectedTeamColor, setSelectedTeamColor] = useState("#B0B0B0"); // Color neutro inicial (gris claro)
 
   const handleRoll = (value) => {
     setDiceValue(value);
@@ -25,7 +26,26 @@ const Board = () => {
   const handleTeamSelect = (selectedTeam) => {
     setTeam(selectedTeam);
     console.log(`Equipo seleccionado: ${selectedTeam}`);
-    // Aquí podrías hacer algo con el equipo seleccionado, como enviarlo al backend o almacenarlo en un estado global.
+    
+    // Actualiza el color del dado basado en el equipo seleccionado
+    let color;
+    switch (selectedTeam) {
+      case "Red":
+        color = "#e74c3c";
+        break;
+      case "Green":
+        color = "#27ae60";
+        break;
+      case "Yellow":
+        color = "#f1c40f";
+        break;
+      case "Blue":
+        color = "#3498db";
+        break;
+      default:
+        color = "#B0B0B0"; // Color neutro en caso de no seleccionar
+    }
+    setSelectedTeamColor(color);
   };
 
   return (
@@ -283,7 +303,7 @@ const Board = () => {
         <Dice
           numDice={1}
           rollDone={handleRoll}
-          faceColor="#28a745"
+          faceColor={selectedTeamColor} // Usar el color del equipo seleccionado
           dotColor="white"
           outline={true}
         />

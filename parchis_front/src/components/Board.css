@@ -88,3 +88,28 @@ img {
   outline: none; /* Elimina el borde por defecto cuando se enfoca */
   box-shadow: 0px 0px 10px rgba(52, 152, 219, 0.5); /* Sombra azul cuando se enfoca */
 }
+
+.token {
+  background-color: #dfdbdb;
+  border: 3px solid black;
+  width: 32px;
+  height: 32px;
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.player-blue {
+  border-color: blue;
+}
+
+.player-green {
+  border-color: green;
+}
+
+.player-red {
+  border-color: red;
+}
+
+.player-yellow {
+  border-color: yellow;
+}

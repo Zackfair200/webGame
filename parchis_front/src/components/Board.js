@@ -33,7 +33,7 @@ const Board = () => {
   const gameState = {
     green: {
       warrior: 0,
-      mage: 0,
+      mage: 14,
       archer: 0,
       druid: 0,
     },
@@ -51,8 +51,8 @@ const Board = () => {
     },
     yellow: {
       warrior: 0,
-      mage: 13,
-      archer: 13,
+      mage: 12,
+      archer: 0,
       druid: 13,
     },
   };
@@ -94,11 +94,11 @@ const Board = () => {
       <table>
         <tbody>
           <tr>
-            <HomeBox player="yellow" gameState={gameState}/>
+            <HomeBox player="yellow" gameState={gameState} />
             <td colSpan="2">1</td>
             <td colSpan="2">68</td>
             <td colSpan="2">67</td>
-            <HomeBox player="green" gameState={gameState}/>
+            <HomeBox player="green" gameState={gameState} />
           </tr>
           <tr>
             <td colSpan="2">2</td>
@@ -147,9 +147,9 @@ const Board = () => {
           <tr>
             <td rowSpan="2">16</td>
             <td rowSpan="2">15</td>
-            <td rowSpan="2">14</td>
-            <td rowSpan="2">13</td>
-            <td rowSpan="2">12</td>
+            <BoardBox position={14} gameState={gameState} />
+            <BoardBox position={13} gameState={gameState} />
+            <BoardBox position={12} gameState={gameState} />
             <td rowSpan="2">11</td>
             <td rowSpan="2">10</td>
             <td id="vacio"></td>
@@ -253,13 +253,13 @@ const Board = () => {
             <td id="vacio"></td>
           </tr>
           <tr>
-          <HomeBox player="blue" gameState={gameState}/>
+            <HomeBox player="blue" gameState={gameState} />
             <td colSpan="2">27</td>
             <td className="rojo" colSpan="2">
               -
             </td>
             <td colSpan="2">41</td>
-            <HomeBox player="red" gameState={gameState}/>
+            <HomeBox player="red" gameState={gameState} />
           </tr>
           <tr>
             <td colSpan="2">28</td>
@@ -330,20 +330,46 @@ function HomeBox(props) {
     <td className={props.player} colSpan="7" rowSpan="7">
       <div className="emojis">
         {Object.keys(playerState)
-        .filter(characterClass => {
-          return playerState[characterClass] == 0
-        })
-        .map((characterClass) => {
-          return <span className="emoji">{classEmojiMap[characterClass]}</span>;
-        })}
+          .filter((characterClass) => {
+            return playerState[characterClass] == 0;
+          })
+          .map((characterClass) => {
+            return (
+              <span className="emoji">{classEmojiMap[characterClass]}</span>
+            );
+          })}
       </div>
     </td>
   );
 }
-/*
-<span className="emoji">😠</span>
-    <span className="emoji">🤩</span>
-    <span className="emoji">😎</span>
-    <span className="emoji">😁</span>
-    */
+
+function getTokensForPosition(gameState, position) {
+  const result = [];
+  Object.keys(gameState).map((playerColor) => {
+    const playerState = gameState[playerColor];
+    Object.keys(playerState).map((characterName) => {
+      const tokenPosition = playerState[characterName];
+      if (position === tokenPosition) {
+        result.push({ player: playerColor, character: characterName });
+      }
+    });
+  });
+
+  return result;
+}
+
+function BoardBox(props) {
+  return (
+    <td rowSpan="2">
+      {props.position}
+      {getTokensForPosition(props.gameState, props.position).map(
+        (playerToken) => {
+          const tokenClassName = `emoji token player-${playerToken.player}`
+          return <span className={tokenClassName}>{classEmojiMap[playerToken.character]}</span>;
+        }
+      )}
+    </td>
+  );
+}
+
 export default Board;

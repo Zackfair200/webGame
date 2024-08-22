@@ -1,10 +1,12 @@
-// src/components/Board.js
 import "./Board.css";
 import Dice from "react-dice-complete";
 import React, { useState } from "react";
+import TeamSelectionModal from "./TeamSelectionModal"; // Importa el modal
 
 const Board = () => {
   const [diceValue, setDiceValue] = useState(1);
+  const [isModalOpen, setModalOpen] = useState(false); // Estado para el modal
+  const [team, setTeam] = useState(null); // Estado para el equipo seleccionado
 
   const handleRoll = (value) => {
     setDiceValue(value);
@@ -12,9 +14,29 @@ const Board = () => {
     // Aquí puedes agregar la lógica para mover las fichas según el valor del dado
   };
 
+  const handleStartClick = () => {
+    setModalOpen(true); // Abre el modal al hacer clic en "Start"
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false); // Cierra el modal
+  };
+
+  const handleTeamSelect = (selectedTeam) => {
+    setTeam(selectedTeam);
+    console.log(`Equipo seleccionado: ${selectedTeam}`);
+    // Aquí podrías hacer algo con el equipo seleccionado, como enviarlo al backend o almacenarlo en un estado global.
+  };
+
   return (
     <div className="board-container">
-      <h1>Tablero de parchís</h1>
+      {/* Botón para iniciar el juego */}
+      <button onClick={handleStartClick} className="start-button">
+        Start
+      </button>
+
+      {/* Mostrar equipo seleccionado si hay uno */}
+      {team && <p>Estás jugando como: {team}</p>}
       <table>
         <tbody>
           <tr>
@@ -266,6 +288,12 @@ const Board = () => {
           outline={true}
         />
       </div>
+      {/* Modal de selección de equipo */}
+      <TeamSelectionModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSelectTeam={handleTeamSelect}
+      />
     </div>
   );
 };

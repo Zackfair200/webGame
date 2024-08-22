@@ -3,6 +3,13 @@ import Dice from "react-dice-complete";
 import React, { useState } from "react";
 import TeamSelectionModal from "./TeamSelectionModal"; // Importa el modal
 
+const classEmojiMap = {
+  warrior: "⚔",
+  mage: "🧙‍♂️",
+  archer: "🏹",
+  druid: "🧝‍♂️",
+};
+
 const Board = () => {
   const [diceValue, setDiceValue] = useState(1);
   const [isModalOpen, setModalOpen] = useState(false); // Estado para el modal
@@ -23,10 +30,37 @@ const Board = () => {
     setModalOpen(false); // Cierra el modal
   };
 
+  const gameState = {
+    green: {
+      warrior: 0,
+      mage: 0,
+      archer: 0,
+      druid: 0,
+    },
+    blue: {
+      warrior: 0,
+      mage: 0,
+      archer: 13,
+      druid: 0,
+    },
+    red: {
+      warrior: 0,
+      mage: 0,
+      archer: 0,
+      druid: 0,
+    },
+    yellow: {
+      warrior: 0,
+      mage: 13,
+      archer: 13,
+      druid: 13,
+    },
+  };
+
   const handleTeamSelect = (selectedTeam) => {
     setTeam(selectedTeam);
     console.log(`Equipo seleccionado: ${selectedTeam}`);
-    
+
     // Actualiza el color del dado basado en el equipo seleccionado
     let color;
     switch (selectedTeam) {
@@ -60,25 +94,11 @@ const Board = () => {
       <table>
         <tbody>
           <tr>
-            <td className="amarillo" colSpan="7" rowSpan="7">
-              <div className="emojis">
-                <span className="emoji">😠</span>
-                <span className="emoji">🤩</span>
-                <span className="emoji">😎</span>
-                <span className="emoji">😁</span>
-              </div>
-            </td>
+            <ExitBox player="yellow" gameState={gameState}></ExitBox>
             <td colSpan="2">1</td>
             <td colSpan="2">68</td>
             <td colSpan="2">67</td>
-            <td className="verde" colSpan="7" rowSpan="7">
-              <div className="emojis">
-                <span className="emoji">🦝</span>
-                <span className="emoji">🐸</span>
-                <span className="emoji">🦊</span>
-                <span className="emoji">🐭</span>
-              </div>
-            </td>
+            <ExitBox player="green" gameState={gameState}></ExitBox>
           </tr>
           <tr>
             <td colSpan="2">2</td>
@@ -233,27 +253,13 @@ const Board = () => {
             <td id="vacio"></td>
           </tr>
           <tr>
-            <td className="azul" colSpan="7" rowSpan="7">
-              <div className="emojis">
-                <span className="emoji">❄</span>
-                <span className="emoji">🔥</span>
-                <span className="emoji">💧</span>
-                <span className="emoji">⚡</span>
-              </div>
-            </td>
+          <ExitBox player="blue" gameState={gameState}></ExitBox>
             <td colSpan="2">27</td>
             <td className="rojo" colSpan="2">
               -
             </td>
             <td colSpan="2">41</td>
-            <td className="rojo" colSpan="7" rowSpan="7">
-              <div className="emojis">
-                <span className="emoji">☢</span>
-                <span className="emoji">☣</span>
-                <span className="emoji">⚠</span>
-                <span className="emoji">🚸</span>
-              </div>
-            </td>
+            <ExitBox player="red" gameState={gameState}></ExitBox>
           </tr>
           <tr>
             <td colSpan="2">28</td>
@@ -318,4 +324,26 @@ const Board = () => {
   );
 };
 
+function ExitBox(props) {
+  const playerState = props.gameState[props.player];
+  return (
+    <td className={props.player} colSpan="7" rowSpan="7">
+      <div className="emojis">
+        {Object.keys(playerState)
+        .filter(characterClass => {
+          return playerState[characterClass] == 0
+        })
+        .map((characterClass) => {
+          return <span className="emoji">{classEmojiMap[characterClass]}</span>;
+        })}
+      </div>
+    </td>
+  );
+}
+/*
+<span className="emoji">😠</span>
+    <span className="emoji">🤩</span>
+    <span className="emoji">😎</span>
+    <span className="emoji">😁</span>
+    */
 export default Board;

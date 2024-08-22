@@ -94,11 +94,11 @@ const Board = () => {
       <table>
         <tbody>
           <tr>
-            <ExitBox player="yellow" gameState={gameState}></ExitBox>
+            <HomeBox player="yellow" gameState={gameState}/>
             <td colSpan="2">1</td>
             <td colSpan="2">68</td>
             <td colSpan="2">67</td>
-            <ExitBox player="green" gameState={gameState}></ExitBox>
+            <HomeBox player="green" gameState={gameState}/>
           </tr>
           <tr>
             <td colSpan="2">2</td>
@@ -253,13 +253,13 @@ const Board = () => {
             <td id="vacio"></td>
           </tr>
           <tr>
-          <ExitBox player="blue" gameState={gameState}></ExitBox>
+          <HomeBox player="blue" gameState={gameState}/>
             <td colSpan="2">27</td>
             <td className="rojo" colSpan="2">
               -
             </td>
             <td colSpan="2">41</td>
-            <ExitBox player="red" gameState={gameState}></ExitBox>
+            <HomeBox player="red" gameState={gameState}/>
           </tr>
           <tr>
             <td colSpan="2">28</td>
@@ -324,7 +324,7 @@ const Board = () => {
   );
 };
 
-function ExitBox(props) {
+function HomeBox(props) {
   const playerState = props.gameState[props.player];
   return (
     <td className={props.player} colSpan="7" rowSpan="7">

@@ -1,7 +1,6 @@
 import React from 'react';
-import Board from '../components/Board';
-import './Game.css'; // Opcional, para estilos
-
+import Board from '../game/Board';
+import './Game.css';
 const Game = () => {
   return (
     <div className="game">

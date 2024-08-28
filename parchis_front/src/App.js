@@ -30,6 +30,12 @@ function App() {
             </PrivateRoute>
           } 
         />
+        <Route 
+          path="/dev_game" 
+          element={
+              <Game />
+          } 
+        />
         {/* Redirige la raíz al login */}
         <Route path="/" element={<Login />} />
       </Routes>

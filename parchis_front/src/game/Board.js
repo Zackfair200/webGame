@@ -1,18 +1,13 @@
 import "./Board.css";
 import Dice from "react-dice-complete";
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import TeamSelectionModal from "./TeamSelectionModal"; // Importa el modal
 import { getCharacterAsset, Characters } from "./assets/characters";
 import { Players } from "./assets/players";
 import { makeNewGameState } from "./GameState";
+import { GameContext, BoxClickEvent, SelectTokenEvent } from "./use_game";
 
 const Board = () => {
-  const [gameState, setGameState] = useState(() => makeNewGameState());
-  const [tokenSelected, setTokenSelected] = useState({
-    player: Players.Green,
-    character: Characters.Mage,
-  });
-
   const [diceValue, setDiceValue] = useState(1);
   const activeToken = { player: Players.Green, character: Characters.Mage };
   const [isModalOpen, setModalOpen] = useState(false); // Estado para el modal
@@ -32,26 +27,6 @@ const Board = () => {
   const handleCloseModal = () => {
     setModalOpen(false); // Cierra el modal
   };
-
-  function moveCharacterToBox(player, character, box) {
-    setGameState({
-      ...gameState,
-      [player]: {
-        ...gameState[player],
-        [character]: box,
-      },
-    });
-  }
-
-  function handleOnSelectToken(player, character) {
-    setTokenSelected({ player, character });
-  }
-
-  function onBoxClick(boxId) {
-    if (tokenSelected) {
-      moveCharacterToBox(tokenSelected.player, tokenSelected.character, boxId);
-    }
-  }
 
   const handleTeamSelect = (selectedTeam) => {
     setTeam(selectedTeam);
@@ -90,23 +65,11 @@ const Board = () => {
       <table>
         <tbody>
           <tr>
-            <HomeBox
-              player={Players.Yellow}
-              gameState={gameState}
-              onTokenClick={(character) =>
-                handleOnSelectToken(Players.Yellow, character)
-              }
-            />
+            <HomeBox player={Players.Yellow} />
             <td colSpan="2">1</td>
             <td colSpan="2">68</td>
             <td colSpan="2">67</td>
-            <HomeBox
-              player={Players.Green}
-              gameState={gameState}
-              onTokenClick={(character) =>
-                handleOnSelectToken(Players.Green, character)
-              }
-            />
+            <HomeBox player={Players.Green} />
           </tr>
           <tr>
             <td colSpan="2">2</td>
@@ -153,48 +116,13 @@ const Board = () => {
             <td colSpan="2">61</td>
           </tr>
           <tr>
-            <BoardBox
-              position={16}
-              gameState={gameState}
-              onClick={() => onBoxClick(16)}
-              onTokenClick={handleOnSelectToken}
-            />
-            <BoardBox
-              position={15}
-              gameState={gameState}
-              onClick={() => onBoxClick(15)}
-              onTokenClick={handleOnSelectToken}
-            />
-            <BoardBox
-              position={14}
-              gameState={gameState}
-              onClick={() => onBoxClick(14)}
-              onTokenClick={handleOnSelectToken}
-            />
-            <BoardBox
-              position={13}
-              gameState={gameState}
-              onClick={() => onBoxClick(13)}
-              onTokenClick={handleOnSelectToken}
-            />
-            <BoardBox
-              position={12}
-              gameState={gameState}
-              onClick={() => onBoxClick(12)}
-              onTokenClick={handleOnSelectToken}
-            />
-            <BoardBox
-              position={11}
-              gameState={gameState}
-              onClick={() => onBoxClick(11)}
-              onTokenClick={handleOnSelectToken}
-            />
-            <BoardBox
-              position={10}
-              gameState={gameState}
-              onClick={() => onBoxClick(10)}
-              onTokenClick={handleOnSelectToken}
-            />
+            <BoardBox position={16} />
+            <BoardBox position={15} />
+            <BoardBox position={14} />
+            <BoardBox position={13} />
+            <BoardBox position={12} />
+            <BoardBox position={11} />
+            <BoardBox position={10} />
             <td id="vacio"></td>
             <td>8</td>
             <td>-</td>
@@ -296,25 +224,13 @@ const Board = () => {
             <td id="vacio"></td>
           </tr>
           <tr>
-            <HomeBox
-              player={Players.Blue}
-              gameState={gameState}
-              onTokenClick={(character) =>
-                handleOnSelectToken(Players.Blue, character)
-              }
-            />
+            <HomeBox player={Players.Blue} />
             <td colSpan="2">27</td>
             <td className="rojo" colSpan="2">
               -
             </td>
             <td colSpan="2">41</td>
-            <HomeBox
-              player={Players.Red}
-              gameState={gameState}
-              onTokenClick={(character) =>
-                handleOnSelectToken(Players.Red, character)
-              }
-            />
+            <HomeBox player={Players.Red} />
           </tr>
           <tr>
             <td colSpan="2">28</td>
@@ -380,7 +296,9 @@ const Board = () => {
 };
 
 function HomeBox(props) {
-  const playerState = props.gameState[props.player];
+  const context = useContext(GameContext);
+  const gameState = context.gameState;
+  const playerState = gameState[props.player];
   return (
     <td className={props.player} colSpan="7" rowSpan="7">
       <div className="emojis">
@@ -388,17 +306,19 @@ function HomeBox(props) {
           .filter((character) => {
             return playerState[character] == 0;
           })
-          .map((characterClass) => {
+          .map((character) => {
             function handleEmojiClick() {
-              props.onTokenClick(characterClass);
+              context.dispatch(
+                SelectTokenEvent({ player: props.player, character })
+              );
             }
             return (
               <span
                 className="emoji"
-                key={characterClass}
+                key={character}
                 onClick={handleEmojiClick}
               >
-                {getCharacterAsset(characterClass)}
+                {getCharacterAsset(character)}
               </span>
             );
           })}
@@ -423,29 +343,34 @@ function getTokensForPosition(gameState, position) {
 }
 
 function BoardBox(props) {
+  const context = useContext(GameContext);
+  const gameState = context.gameState;
+
+  function handleBoxClick() {
+    context.dispatch(BoxClickEvent({ boxId: props.position }));
+  }
+
   return (
-    <td rowSpan="2" onClick={props.onClick}>
+    <td rowSpan="2" onClick={handleBoxClick}>
       {props.position}
-      {getTokensForPosition(props.gameState, props.position).map(
-        (playerToken) => {
-          const tokenClassName = `emoji token player-${playerToken.player}`;
+      {getTokensForPosition(gameState, props.position).map((playerToken) => {
+        const tokenClassName = `emoji token player-${playerToken.player}`;
 
-          function handleClick(e) {
-            e.stopPropagation()
-            props.onTokenClick(playerToken.player, playerToken.character)
-          }
-
-          return (
-            <span
-              key={`${playerToken.player}__${playerToken.character}`}
-              className={tokenClassName}
-              onClick={handleClick}
-            >
-              {getCharacterAsset(playerToken.character)}
-            </span>
-          );
+        function handleClick(e) {
+          e.stopPropagation();
+          context.dispatch(SelectTokenEvent(playerToken));
         }
-      )}
+
+        return (
+          <span
+            key={`${playerToken.player}__${playerToken.character}`}
+            className={tokenClassName}
+            onClick={handleClick}
+          >
+            {getCharacterAsset(playerToken.character)}
+          </span>
+        );
+      })}
     </td>
   );
 }

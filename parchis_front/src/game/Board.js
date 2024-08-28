@@ -2,11 +2,16 @@ import "./Board.css";
 import Dice from "react-dice-complete";
 import React, { useState } from "react";
 import TeamSelectionModal from "./TeamSelectionModal"; // Importa el modal
-import { getCharacterAsset } from './assets/characters'
+import { getCharacterAsset, Characters } from './assets/characters'
 import { Players } from './assets/players'
+import { makeNewGameState } from './GameState'
 
 const Board = () => {
+  const [gameState, setGameState] = useState(() => makeNewGameState());
+  const [tokenSelected, setTokenSelected] = useState({player: Players.Green, character: Characters.Mage});
+
   const [diceValue, setDiceValue] = useState(1);
+  const activeToken = {player: Players.Green, character: Characters.Mage}
   const [isModalOpen, setModalOpen] = useState(false); // Estado para el modal
   const [team, setTeam] = useState(null); // Estado para el equipo seleccionado
   const [selectedTeamColor, setSelectedTeamColor] = useState("#B0B0B0"); // Color neutro inicial (gris claro)
@@ -25,32 +30,21 @@ const Board = () => {
     setModalOpen(false); // Cierra el modal
   };
 
-  const gameState = {
-    green: {
-      warrior: 0,
-      mage: 14,
-      archer: 0,
-      druid: 0,
-    },
-    blue: {
-      warrior: 0,
-      mage: 0,
-      archer: 13,
-      druid: 0,
-    },
-    red: {
-      warrior: 0,
-      mage: 0,
-      archer: 0,
-      druid: 0,
-    },
-    yellow: {
-      warrior: 0,
-      mage: 12,
-      archer: 0,
-      druid: 13,
-    },
-  };
+  function moveCharacterToBox(player, character, box) {
+    setGameState({
+      ...gameState,
+      [player]: {
+        ...gameState[player],
+        [character]: box
+      }
+    })
+  }
+
+  function onBoxClick(boxId) {
+    if (tokenSelected) {
+      moveCharacterToBox(tokenSelected.player, tokenSelected.character, boxId)
+    }
+  }
 
   const handleTeamSelect = (selectedTeam) => {
     setTeam(selectedTeam);
@@ -140,13 +134,13 @@ const Board = () => {
             <td colSpan="2">61</td>
           </tr>
           <tr>
-            <td rowSpan="2">16</td>
-            <td rowSpan="2">15</td>
-            <BoardBox position={14} gameState={gameState} />
-            <BoardBox position={13} gameState={gameState} />
-            <BoardBox position={12} gameState={gameState} />
-            <td rowSpan="2">11</td>
-            <td rowSpan="2">10</td>
+            <BoardBox position={16} gameState={gameState} onClick={() => onBoxClick(16)} />
+            <BoardBox position={15} gameState={gameState} onClick={() => onBoxClick(15)} />
+            <BoardBox position={14} gameState={gameState} onClick={() => onBoxClick(14)} />
+            <BoardBox position={13} gameState={gameState} onClick={() => onBoxClick(13)} />
+            <BoardBox position={12} gameState={gameState} onClick={() => onBoxClick(12)} />
+            <BoardBox position={11} gameState={gameState} onClick={() => onBoxClick(11)} />
+            <BoardBox position={10} gameState={gameState} onClick={() => onBoxClick(10)}/>
             <td id="vacio"></td>
             <td>8</td>
             <td>-</td>
@@ -330,7 +324,7 @@ function HomeBox(props) {
           })
           .map((characterClass) => {
             return (
-              <span className="emoji">{getCharacterAsset(characterClass)}</span>
+              <span className="emoji" key={characterClass}>{getCharacterAsset(characterClass)}</span>
             );
           })}
       </div>
@@ -355,7 +349,7 @@ function getTokensForPosition(gameState, position) {
 
 function BoardBox(props) {
   return (
-    <td rowSpan="2">
+    <td rowSpan="2" onClick={props.onClick}>
       {props.position}
       {getTokensForPosition(props.gameState, props.position).map(
         (playerToken) => {

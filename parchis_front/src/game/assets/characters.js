@@ -1,4 +1,10 @@
 
+export const Characters = {
+  Warrior: "warrior",
+  Mage: "mage",
+  Archer: "archer",
+  Druid: "druid",
+};
 
 
 export const characterEmojis = {

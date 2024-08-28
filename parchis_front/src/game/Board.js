@@ -40,6 +40,10 @@ const Board = () => {
     })
   }
 
+  function handleOnSelectToken(player, character) {
+    setTokenSelected({player, character})
+  }
+
   function onBoxClick(boxId) {
     if (tokenSelected) {
       moveCharacterToBox(tokenSelected.player, tokenSelected.character, boxId)
@@ -83,11 +87,11 @@ const Board = () => {
       <table>
         <tbody>
           <tr>
-            <HomeBox player={Players.Yellow} gameState={gameState} />
+            <HomeBox player={Players.Yellow} gameState={gameState} onTokenClick={(character) => handleOnSelectToken(Players.Yellow, character)} />
             <td colSpan="2">1</td>
             <td colSpan="2">68</td>
             <td colSpan="2">67</td>
-            <HomeBox player={Players.Green} gameState={gameState} />
+            <HomeBox player={Players.Green} gameState={gameState} onTokenClick={(character) => handleOnSelectToken(Players.Green, character)} />
           </tr>
           <tr>
             <td colSpan="2">2</td>
@@ -242,13 +246,13 @@ const Board = () => {
             <td id="vacio"></td>
           </tr>
           <tr>
-            <HomeBox player={Players.Blue} gameState={gameState} />
+            <HomeBox player={Players.Blue} gameState={gameState} onTokenClick={(character) => handleOnSelectToken(Players.Blue, character)} />
             <td colSpan="2">27</td>
             <td className="rojo" colSpan="2">
               -
             </td>
             <td colSpan="2">41</td>
-            <HomeBox player={Players.Red} gameState={gameState} />
+            <HomeBox player={Players.Red} gameState={gameState} onTokenClick={(character) => handleOnSelectToken(Players.Red, character)} />
           </tr>
           <tr>
             <td colSpan="2">28</td>
@@ -319,12 +323,19 @@ function HomeBox(props) {
     <td className={props.player} colSpan="7" rowSpan="7">
       <div className="emojis">
         {Object.keys(playerState)
-          .filter((characterClass) => {
-            return playerState[characterClass] == 0;
+          .filter((character) => {
+            return playerState[character] == 0;
           })
           .map((characterClass) => {
+            function handleEmojiClick() {
+              props.onTokenClick(characterClass)
+            }
             return (
-              <span className="emoji" key={characterClass}>{getCharacterAsset(characterClass)}</span>
+              <span 
+                className="emoji" 
+                key={characterClass}
+                onClick={handleEmojiClick}
+              >{getCharacterAsset(characterClass)}</span>
             );
           })}
       </div>
@@ -354,7 +365,7 @@ function BoardBox(props) {
       {getTokensForPosition(props.gameState, props.position).map(
         (playerToken) => {
           const tokenClassName = `emoji token player-${playerToken.player}`
-          return <span className={tokenClassName}>{getCharacterAsset(playerToken.character)}</span>;
+          return <span key={`${playerToken.player}__${playerToken.character}`} className={tokenClassName} >{getCharacterAsset(playerToken.character)}</span>;
         }
       )}
     </td>

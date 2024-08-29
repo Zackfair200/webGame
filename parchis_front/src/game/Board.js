@@ -1,15 +1,13 @@
 import "./Board.css";
 import Dice from "react-dice-complete";
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import TeamSelectionModal from "./TeamSelectionModal"; // Importa el modal
-import { getCharacterAsset, Characters } from "./assets/characters";
 import { Players } from "./assets/players";
 import {HomeBox} from './HomeBox'
 import {BoardBox} from './BoardBox'
 
 const Board = () => {
   const [diceValue, setDiceValue] = useState(1);
-  const activeToken = { player: Players.Green, character: Characters.Mage };
   const [isModalOpen, setModalOpen] = useState(false); // Estado para el modal
   const [team, setTeam] = useState(null); // Estado para el equipo seleccionado
   const [selectedTeamColor, setSelectedTeamColor] = useState("#B0B0B0"); // Color neutro inicial (gris claro)

@@ -227,12 +227,14 @@ Una salida obligatoria por obtener un 5 nunca puede ser bloqueada por una barrer
 
 Si la casilla de salida contiene dos personajes y debe salir un nuevo personaje:
 
+Esta regla se aplica siempre que la casilla de salida contenga dos personajes, independientemente de sus facciones y de si dichos personajes forman o no una barrera.
+
 - el jugador activo elige cual de los dos personajes existentes es eliminado;
 - el personaje eliminado vuelve a su casa;
 - el personaje que acaba de salir ocupa su lugar;
 - el otro ocupante permanece en la casilla.
 
-Esto se aplica independientemente de si la barrera pertenece al jugador activo o a otra faccion.
+Esto se aplica independientemente de las facciones de los dos personajes que ocupan la casilla de salida.
 
 Esta eliminacion se considera una muerte involuntaria provocada por la salida y no una captura. Por tanto, no concede la recompensa de +20.
 

@@ -7,5 +7,6 @@ export * from './rules/barriers/barriers';
 export * from './rules/destinationRules/destinationRules';
 export * from './rules/legalMovement/legalMovement';
 export * from './rules/movableCharacters/movableCharacters';
+export * from './rules/rollFive/rollFive';
 export * from './state/initialState';
 export * from './state/positions';

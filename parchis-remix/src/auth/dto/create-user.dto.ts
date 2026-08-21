@@ -1,5 +1,5 @@
 import { IsString, IsEmail, IsEnum, IsDateString } from 'class-validator';
-import { GenderEnum } from './gender.enum';
+import { GenderEnum } from '../../users/gender.enum';
 
 export class CreateUserDto {
   @IsString()

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Container, Row, Col, Card, Button, ListGroup } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom'; // Importa useNavigate
-import './Dashboard.css'; // Asegúrate de que este archivo contiene estilos compatibles
+import './DashboardPage.css'; // Asegúrate de que este archivo contiene estilos compatibles
 
 function Dashboard() {
   const navigate = useNavigate(); // Define el hook para navegación

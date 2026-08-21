@@ -1,4 +1,75 @@
-# Parchís Legendario🌟
+# Parchís Legendario
+
+## Estado técnico actual
+
+Este repositorio contiene dos aplicaciones npm independientes y un documento de diseño del juego. No hay workspace raíz ni `package.json` raíz.
+
+```text
+juego/
+├─ README.md
+├─ AGENTS.md
+├─ parchis_front/      # Frontend React
+└─ parchis-remix/      # Backend NestJS API
+```
+
+### Frontend: `parchis_front`
+
+- Stack: Create React App, React 18, React Router 6, Axios, Bootstrap, React-Bootstrap y `react-dice-complete`.
+- Dev server: `npm start`, servido normalmente en `http://localhost:3000`.
+- Build: `npm run build`.
+- Tests: `npm test -- --watchAll=false`.
+- Estructura principal:
+
+```text
+parchis_front/src/
+├─ app/          # App y definición de rutas
+├─ api/          # Cliente API existente, actualmente no usado por las pantallas
+├─ auth/         # Login, registro y PrivateRoute
+├─ dashboard/    # Dashboard protegido
+├─ game/         # Pantalla de juego, tablero, estado local y modal de equipo
+├─ styles/       # Estilos globales
+├─ index.js
+├─ App.test.js
+├─ App.css       # Resto CRA conservado
+└─ logo.svg      # Resto CRA conservado
+```
+
+### Backend: `parchis-remix`
+
+- Stack: NestJS 10, TypeScript, TypeORM, PostgreSQL, JWT y bcrypt.
+- Dev server: `npm run start:dev`, servido normalmente en `http://localhost:3001`.
+- Build: `npm run build`.
+- Tests unitarios: `npm test`.
+- Tests e2e: `npm run test:e2e`.
+- Estructura principal:
+
+```text
+parchis-remix/src/
+├─ auth/          # Registro, login y DTOs de auth
+├─ common/guards/ # Guard JWT manual actual
+├─ config/        # Config actual extraída sin cambiar valores
+├─ dashboard/     # Endpoint protegido /dashboard
+├─ health/        # Endpoint raíz actual GET /
+├─ users/         # Entidad, enum y servicio de usuarios
+├─ app.module.ts
+└─ main.ts
+```
+
+### Comunicación actual
+
+- El frontend llama directamente a `http://localhost:3001/auth/login` y `http://localhost:3001/auth/register`.
+- El backend permite CORS desde `http://localhost:3000`.
+- El token JWT se guarda en `localStorage` como `token`.
+- Las rutas protegidas del frontend comprueban solo que exista `token`; no validan el token contra el backend.
+
+### Notas importantes
+
+- La configuración de PostgreSQL sigue hardcodeada con los mismos valores dentro de `parchis-remix/src/config/database.config.ts`.
+- `synchronize: true` sigue activo.
+- La configuración JWT sigue usando el secreto actual `yourSecretKey`.
+- La lógica de autenticación conserva los problemas conocidos existentes; no se ha corregido en esta reorganización.
+
+## Documento de diseño original
 
 ## Índice 🗂
 🔮 [Visión General](#visión-general)

@@ -1,16 +1,14 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthController } from './controllers/auth.controller';
-import { UserModule } from '../user/user.module';
+import { AuthController } from './auth.controller';
+import { UsersModule } from '../users/users.module';
 import { JwtModule } from '@nestjs/jwt';
+import { jwtConfig } from '../config/jwt.config';
 
 @Module({
   imports: [
-    UserModule,
-    JwtModule.register({
-      secret: 'yourSecretKey', // Cambia esto a un secreto seguro
-      signOptions: { expiresIn: '1h' }, // Configura la expiración del token
-    }),],
+    UsersModule,
+    JwtModule.register(jwtConfig),],
   providers: [AuthService],
   controllers: [AuthController],
 })

@@ -1,4 +1,6 @@
 import {
+  DESTINATION_FAILURE_REASONS,
+  DESTINATION_OUTCOME_TYPES,
   FACTION_IDS,
   LEGAL_MOVEMENT_FAILURE_REASONS,
   MOVEMENT_FAILURE_REASONS,
@@ -19,8 +21,11 @@ function createCharacter({ id, factionId, position }) {
   };
 }
 
-function expectLegalMovement(result, { destination, path, steps }) {
-  expect(result).toEqual({ legal: true, destination, path });
+function expectLegalMovement(
+  result,
+  { destination, path, steps, outcome = { type: DESTINATION_OUTCOME_TYPES.EMPTY } },
+) {
+  expect(result).toEqual({ legal: true, destination, path, outcome });
   expect(result.path).toHaveLength(steps);
   expect(result.destination).toEqual(result.path.at(-1));
 }
@@ -132,6 +137,7 @@ describe('evaluateMovement', () => {
           destination: createGoalPosition(),
           path: [createFinalLanePosition(FACTION_IDS.BLUE, 7), createGoalPosition()],
           steps: 2,
+          outcome: { type: DESTINATION_OUTCOME_TYPES.GOAL },
         },
       );
     });
@@ -172,9 +178,10 @@ describe('evaluateMovement', () => {
           position: createFinalLanePosition(FACTION_IDS.YELLOW, 6),
         }),
       ];
+      const result = evaluateMovement({ characterId: 'yellow.1', steps: 4, characters });
 
       expectLegalMovement(
-        evaluateMovement({ characterId: 'yellow.1', steps: 4, characters }),
+        result,
         {
           destination: createFinalLanePosition(FACTION_IDS.YELLOW, 6),
           path: [
@@ -186,9 +193,50 @@ describe('evaluateMovement', () => {
           steps: 4,
         },
       );
+      expect(result.outcome.type).not.toBe(DESTINATION_OUTCOME_TYPES.GOAL);
     });
 
-    test('allows destination with a single occupant in this layer', () => {
+    test('detects capture against a single enemy on a normal common destination', () => {
+      const characters = [
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(8) }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(10) }),
+      ];
+
+      expectLegalMovement(
+        evaluateMovement({ characterId: 'red.1', steps: 2, characters }),
+        {
+          destination: createCommonPosition(10),
+          path: [createCommonPosition(9), createCommonPosition(10)],
+          steps: 2,
+          outcome: {
+            type: DESTINATION_OUTCOME_TYPES.CAPTURE,
+            capturedCharacterId: 'blue.1',
+          },
+        },
+      );
+    });
+
+    test('allows sharing destination with one ally', () => {
+      const characters = [
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(8) }),
+        createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      ];
+
+      expectLegalMovement(
+        evaluateMovement({ characterId: 'red.1', steps: 2, characters }),
+        {
+          destination: createCommonPosition(10),
+          path: [createCommonPosition(9), createCommonPosition(10)],
+          steps: 2,
+          outcome: {
+            type: DESTINATION_OUTCOME_TYPES.SHARE_WITH_ALLY,
+            occupantCharacterId: 'red.2',
+          },
+        },
+      );
+    });
+
+    test('allows safe sharing with one enemy on a safe common destination', () => {
       const characters = [
         createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
         createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
@@ -200,6 +248,30 @@ describe('evaluateMovement', () => {
           destination: createCommonPosition(12),
           path: [createCommonPosition(11), createCommonPosition(12)],
           steps: 2,
+          outcome: {
+            type: DESTINATION_OUTCOME_TYPES.SAFE_SHARE,
+            occupantCharacterId: 'blue.1',
+          },
+        },
+      );
+    });
+
+    test('allows safe sharing with one enemy on a start square', () => {
+      const characters = [
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(3) }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(5) }),
+      ];
+
+      expectLegalMovement(
+        evaluateMovement({ characterId: 'red.1', steps: 2, characters }),
+        {
+          destination: createCommonPosition(5),
+          path: [createCommonPosition(4), createCommonPosition(5)],
+          steps: 2,
+          outcome: {
+            type: DESTINATION_OUTCOME_TYPES.SAFE_SHARE,
+            occupantCharacterId: 'blue.1',
+          },
         },
       );
     });
@@ -243,6 +315,21 @@ describe('evaluateMovement', () => {
         createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(9) }),
         createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
         createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+      ];
+
+      expect(evaluateMovement({ characterId: 'red.1', steps: 3, characters })).toEqual({
+        legal: false,
+        reason: LEGAL_MOVEMENT_FAILURE_REASONS.BARRIER,
+        blockedAt: createCommonPosition(12),
+        pathIndex: 2,
+      });
+    });
+
+    test('rejects a movement blocked by an own-faction destination barrier', () => {
+      const characters = [
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(9) }),
+        createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(12) }),
+        createCharacter({ id: 'red.3', factionId: FACTION_IDS.RED, position: createCommonPosition(12) }),
       ];
 
       expect(evaluateMovement({ characterId: 'red.1', steps: 3, characters })).toEqual({
@@ -364,7 +451,58 @@ describe('evaluateMovement', () => {
             createFinalLanePosition(FACTION_IDS.YELLOW, 6),
           ],
           steps: 4,
+          outcome: {
+            type: DESTINATION_OUTCOME_TYPES.SHARE_WITH_ALLY,
+            occupantCharacterId: 'yellow.2',
+          },
         },
+      );
+    });
+  });
+
+  describe('destination rules', () => {
+    test('returns destinationFull for a full safe destination with two different-faction occupants', () => {
+      const characters = [
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+        createCharacter({ id: 'green.1', factionId: FACTION_IDS.GREEN, position: createCommonPosition(12) }),
+      ];
+
+      expect(evaluateMovement({ characterId: 'red.1', steps: 2, characters })).toEqual({
+        legal: false,
+        reason: DESTINATION_FAILURE_REASONS.DESTINATION_FULL,
+        destination: createCommonPosition(12),
+      });
+    });
+
+    test('propagates inconsistent normal common destination occupants from destination rules', () => {
+      const characters = [
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(8) }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(10) }),
+        createCharacter({ id: 'green.1', factionId: FACTION_IDS.GREEN, position: createCommonPosition(10) }),
+      ];
+
+      expect(() => evaluateMovement({ characterId: 'red.1', steps: 2, characters })).toThrow(
+        'Different-faction occupants cannot coexist on a normal common position.',
+      );
+    });
+
+    test('propagates enemy final lane occupants from destination rules', () => {
+      const characters = [
+        createCharacter({
+          id: 'red.1',
+          factionId: FACTION_IDS.RED,
+          position: createFinalLanePosition(FACTION_IDS.RED, 2),
+        }),
+        createCharacter({
+          id: 'blue.1',
+          factionId: FACTION_IDS.BLUE,
+          position: createFinalLanePosition(FACTION_IDS.RED, 4),
+        }),
+      ];
+
+      expect(() => evaluateMovement({ characterId: 'red.1', steps: 2, characters })).toThrow(
+        'Enemy occupant cannot be in a final lane.',
       );
     });
   });
@@ -521,6 +659,24 @@ describe('evaluateMovement', () => {
         createCommonPosition(12),
         createCommonPosition(13),
       ]);
+    });
+
+    test('returns correct outcome after a previous outcome result was mutated', () => {
+      const characters = [
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(8) }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(10) }),
+      ];
+      const firstResult = evaluateMovement({ characterId: 'red.1', steps: 2, characters });
+
+      firstResult.outcome.type = 'changed';
+      firstResult.outcome.capturedCharacterId = 'changed';
+
+      expect(evaluateMovement({ characterId: 'red.1', steps: 2, characters }).outcome).toEqual({
+        type: DESTINATION_OUTCOME_TYPES.CAPTURE,
+        capturedCharacterId: 'blue.1',
+      });
+      expect(characters[0].position).toEqual(createCommonPosition(8));
+      expect(characters[1].position).toEqual(createCommonPosition(10));
     });
 
     test('does not expose route positions through legal results', () => {

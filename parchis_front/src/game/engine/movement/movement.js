@@ -2,6 +2,7 @@ import { COMMON_SQUARE_COUNT, FINAL_LANE_LENGTH } from '../board/board';
 import { ROUTES_BY_FACTION } from '../board/routes';
 import { getFactionIds } from '../factions/factions';
 import { POSITION_TYPES, clonePosition, createFinalLanePosition, isSamePosition } from '../state/positions';
+import { assertValidMovementSteps } from './validation';
 
 export const MOVEMENT_FAILURE_REASONS = Object.freeze({
   MOVEMENT_BEYOND_FINAL_LANE_START: 'movementBeyondFinalLaneStart',
@@ -10,12 +11,6 @@ export const MOVEMENT_FAILURE_REASONS = Object.freeze({
 function assertValidFaction(factionId) {
   if (!getFactionIds().includes(factionId)) {
     throw new Error(`Invalid faction id: ${factionId}`);
-  }
-}
-
-function assertValidSteps(steps) {
-  if (!Number.isInteger(steps) || steps <= 0) {
-    throw new Error('Movement steps must be a positive integer.');
   }
 }
 
@@ -75,7 +70,7 @@ function calculateBouncePath(factionId, stepsBeyondGoal) {
 
 function calculateMovementGeometry({ factionId, from, steps }) {
   assertValidFaction(factionId);
-  assertValidSteps(steps);
+  assertValidMovementSteps(steps);
   assertValidPositionForFaction(from, factionId);
 
   const route = ROUTES_BY_FACTION[factionId];

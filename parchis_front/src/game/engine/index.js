@@ -4,5 +4,6 @@ export * from './factions/factions';
 export * from './movement/movement';
 export * from './occupancy/occupancy';
 export * from './rules/barriers/barriers';
+export * from './rules/legalMovement/legalMovement';
 export * from './state/initialState';
 export * from './state/positions';

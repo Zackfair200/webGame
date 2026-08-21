@@ -1,70 +1,49 @@
-# Getting Started with Create React App
+# parchis_front
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Frontend React del proyecto Parchís Legendario.
 
-## Available Scripts
+## Stack
 
-In the project directory, you can run:
+- Create React App con `react-scripts`.
+- React 18.
+- React Router 6.
+- Axios.
+- Bootstrap y React-Bootstrap.
+- `react-dice-complete` para el dado.
 
-### `npm start`
+## Scripts
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- `npm start`: servidor de desarrollo en `http://localhost:3000`.
+- `npm run build`: build de producción.
+- `npm test`: test runner de CRA.
+- `npm test -- --watchAll=false`: ejecución no interactiva de tests.
+- `npm run eject`: eject de CRA; evitar salvo decisión explícita.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Estructura
 
-### `npm test`
+```text
+src/
+├─ app/          # App y rutas
+├─ api/          # Cliente API existente
+├─ auth/         # Login, registro y rutas protegidas
+├─ dashboard/    # Dashboard
+├─ game/         # Juego, tablero y estado local
+├─ styles/       # Estilos globales
+├─ index.js
+├─ App.test.js
+├─ App.css
+└─ logo.svg
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Comunicación con backend
 
-### `npm run build`
+- Login: `POST http://localhost:3001/auth/login`.
+- Registro: `POST http://localhost:3001/auth/register`.
+- El JWT se guarda en `localStorage` como `token`.
+- `PrivateRoute` solo valida la existencia local del token.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Notas
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- `src/api/authApi.js` conserva el cliente API previo, pero las pantallas actuales siguen haciendo llamadas directas con Axios.
+- `App.test.js` todavía es un test heredado de CRA y no representa las rutas actuales.
+- `App.css` y `logo.svg` se conservan como restos CRA no conectados.

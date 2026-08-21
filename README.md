@@ -1,141 +1,630 @@
-# Parchís Legendario🌟
+# Parchís Legendario
 
-## Índice 🗂
-🔮 [Visión General](#visión-general)
-📜 [Historia y Ambientación](#historia-y-ambientación)
-⚙️ [Mecánicas de Juego](#mecánicas-de-juego)
-🎭 [Personajes y Habilidades](#personajes-y-habilidades)
-   - 🔴[Jugador 1: Equipo Rojo](#jugador-1-equipo-rojo)
-   - 🔵[Jugador 2: Equipo Azul](#jugador-2-equipo-azul)
-   - 🟢[Jugador 3: Equipo Verde](#jugador-3-equipo-verde)
-   - 🟡[Jugador 4: Equipo Amarillo](#jugador-4-equipo-amarillo)
-🎨 [Tablero y Entornos](#tablero-y-entornos)
-🖥️ [Interfaz de Usuario (UI/UX)](#interfaz-de-usuario-uiux)
-🎵 [Música y Sonido](#música-y-sonido)
-🛠️ [Tecnologías y Herramientas](#tecnologías-y-herramientas)
-📅 [Cronograma y Etapas de Desarrollo](#cronograma-y-etapas-de-desarrollo)
-📝 [Notas y Comentarios](#notas-y-comentarios)
-📚 [Referencias e Inspiración](#referencias-e-inspiración)
+## Fuente de Verdad
 
-## Visión General
-- **Descripción**: *Parchís Legendario* es una versión reinventada del clásico juego de mesa Parchís. En este juego, cada jugador controla un equipo de 4 personajes, donde cada ficha representa a un personaje único con habilidades especiales. La estrategia del juego se enriquece con la gestión de estas habilidades, que pueden alterar el curso de la partida.
-- **Plataformas**: PC.
-- **Género**: Juego de mesa estratégico.
-- **Público Objetivo**: Jugadores casuales de todas las edades.
+Este `README.md` es la fuente de verdad sobre que juego se esta construyendo y cuales son sus reglas.
 
-## Historia y Ambientación
-- **Sinopsis**: En un reino mágico donde los héroes legendarios compiten en el gran torneo de Parchís para ganar el título de Campeón Supremo, cada jugador reúne a su equipo de cuatro campeones, cada uno con habilidades únicas. Solo el mejor estratega podrá guiar a su equipo hacia la victoria.
-- **Ambientación**: El juego tiene lugar en un tablero flotante, suspendido en un reino de fantasía lleno de criaturas míticas, castillos voladores, y paisajes encantados.
-- **Objetivo del Jugador**: Utilizar la combinación de habilidades de los personajes para avanzar desde la salida hasta la meta, derrotando a los oponentes en el proceso.
+`AGENTS.md` es la fuente de verdad sobre como deben trabajar los agentes de IA dentro de este repositorio.
 
-## Mecánicas de Juego
-- **Jugabilidad**: 
-  - Cada jugador tiene cuatro fichas, cada una representando a un personaje con una habilidad única.
-  - El dado determina los movimientos básicos, pero las habilidades especiales pueden alterar los resultados o afectar a otros jugadores.
-  - **Condiciones de victoria**: El primer jugador en llevar todas sus fichas al centro del tablero gana la partida.
+Si una regla no esta documentada aqui, no debe inventarse ni asumirse automaticamente una variante clasica del Parchis. Antes de implementar comportamiento ambiguo, hay que pedir aclaracion.
 
-- **Controles**: 
-  - Controles simples de punto y clic para seleccionar fichas y lanzar el dado.
+## Vision del Juego
 
-## Personajes y Habilidades
+Parchís Legendario es un videojuego basado en Parchis.
 
-### Jugador 1: Equipo Rojo
-- **Personaje 1**: *Guerrero del Fuego*
-  - *Habilidad*: *Llama Impetuosa*: Quema la casilla donde cae, evitando que cualquier oponente la ocupe por 2 turnos.
-- **Personaje 2**: *Maga del Sol*
-  - *Habilidad*: *Destello Solar*: Impide que el oponente mueva fichas en el próximo turno.
-- **Personaje 3**: *Caballero Carmesí*
-  - *Habilidad*: *Escudo de Fuego*: Al ser capturado, quema la ficha del oponente, enviándola a su base.
-- **Personaje 4**: *Hechicera de Lava*
-  - *Habilidad*: *Río de Lava*: Puede mover su ficha hasta 10 casillas en línea recta, superando cualquier obstáculo.
+La intencion no es crear simplemente un Parchis clasico. El juego utiliza las reglas fundamentales del Parchis como motor base y posteriormente añade una capa estrategica propia basada en facciones, personajes unicos, habilidades, posibles casillas o zonas especiales y modificadores de las reglas base.
 
-### Jugador 2: Equipo Azul
-- **Personaje 1**: *Señor del Hielo*
-  - *Habilidad*: *Congelación*: Congela una casilla, impidiendo que cualquier ficha se mueva desde o hacia ella por 2 turnos.
-- **Personaje 2**: *Hechicera de la Niebla*
-  - *Habilidad*: *Niebla Oscura*: Cubre el tablero con niebla, ocultando las posiciones de las fichas por 1 turno.
-- **Personaje 3**: *Guardián del Mar*
-  - *Habilidad*: *Ola Aplastante*: Desplaza todas las fichas en una línea hacia atrás 3 casillas.
-- **Personaje 4**: *Sirena de la Tormenta*
-  - *Habilidad*: *Canto de la Tormenta*: Atrae a una ficha oponente hacia su posición, devolviéndola 5 casillas.
+La primera prioridad de desarrollo es construir un motor de Parchis local completamente funcional. Despues se desarrollara la capa especial del juego.
 
-### Jugador 3: Equipo Verde
-- **Personaje 1**: *Arquero de la Selva*
-  - *Habilidad*: *Flecha Veloz*: Permite mover una ficha propia o enemiga 3 casillas hacia adelante o atrás.
-- **Personaje 2**: *Druida del Bosque*
-  - *Habilidad*: *Curación*: Recupera una ficha propia capturada y la coloca en la casilla de salida.
-- **Personaje 3**: *Guerrero del Roble*
-  - *Habilidad*: *Muro de Espinas*: Crea una barrera que ningún oponente puede cruzar por 2 turnos.
-- **Personaje 4**: *Ninfa de la Naturaleza*
-  - *Habilidad*: *Llamada de la Naturaleza*: Teletransporta una ficha propia a cualquier casilla segura del tablero.
+Las habilidades de los personajes podran crear excepciones explicitas a determinadas reglas base. Cuando una habilidad contradiga explicitamente una regla base, prevalecera la habilidad mientras este activa.
 
-### Jugador 4: Equipo Amarillo
-- **Personaje 1**: *Guerrero de la Luz*
-  - *Habilidad*: *Rayo de Luz*: Elimina una ficha enemiga de su casilla y la devuelve a su base.
-- **Personaje 2**: *Hechicera del Trueno*
-  - *Habilidad*: *Trueno Ensordecedor*: Evita que los oponentes usen habilidades especiales en el siguiente turno.
-- **Personaje 3**: *Paladín Dorado*
-  - *Habilidad*: *Escudo de Luz*: Protege una ficha aliada de ser capturada durante 2 turnos.
-- **Personaje 4**: *Ángel Guardián*
-  - *Habilidad*: *Resurrección*: Permite revivir una ficha propia capturada y moverla 5 casillas adelante desde la base.
+## Estado Actual del Proyecto
 
-## Tablero y Entornos
-- **Tablero**: 
-  - **Diseño Clásico con un Giro**: Un tablero de Parchís tradicional pero con zonas interactivas que se activan según las habilidades de los personajes.
-  - **Zonas Especiales**: Casillas mágicas que pueden potenciar habilidades o cambiar el curso del juego.
+El repositorio contiene dos aplicaciones npm independientes. No hay workspace raiz ni `package.json` raiz.
 
-- **Entornos**:
-  - *Fortaleza del Rey*: Un tablero rodeado por muros de un castillo flotante, con casillas que activan trampas.
-  - *Bosque Encantado*: Árboles gigantes y criaturas mágicas que influyen en los movimientos de las fichas.
-  - *Volcán en Erupción*: Un entorno dinámico donde la lava altera las casillas del tablero.
+```text
+juego/
+├─ README.md
+├─ AGENTS.md
+├─ parchis_front/      # Frontend React
+└─ parchis-remix/      # Backend NestJS API
+```
 
-## Interfaz de Usuario (UI/UX)
-- **Menús**:
-  - Menú principal con opciones para comenzar partidas, revisar estadísticas, y personalizar personajes.
-  - Menú de selección de personajes y tableros.
-  - Menú de pausa con acceso a opciones de juego y reglas.
+### Frontend: `parchis_front`
 
-- **HUD (Head-Up Display)**:
-  - Visualización del dado, habilidades especiales disponibles, y el estado de las fichas en el tablero.
-  - Barra de progreso para cada jugador que muestra qué tan cerca están de ganar.
+- Stack: Create React App, React 18, React Router 6, Axios, Bootstrap, React-Bootstrap y `react-dice-complete`.
+- Dev server: `npm start`, servido normalmente en `http://localhost:3000`.
+- Build: `npm run build`.
+- Tests: `npm test -- --watchAll=false`.
+- La pantalla de juego actual es un prototipo visual local en React.
+- La logica actual de juego no debe considerarse el motor definitivo.
 
-- **Experiencia de Usuario**:
-  - Accesibilidad con modos de color para daltónicos y opciones de tamaño de texto ajustable.
-  - Tutorial interactivo para nuevos jugadores.
+```text
+parchis_front/src/
+├─ app/          # App y definicion de rutas
+├─ api/          # Cliente API existente, actualmente no usado por las pantallas principales
+├─ auth/         # Login, registro y PrivateRoute
+├─ dashboard/    # Dashboard protegido
+├─ game/         # Pantalla de juego, tablero visual, estado local y modal de equipo
+├─ styles/       # Estilos globales
+├─ index.js
+├─ App.test.js
+├─ App.css       # Resto CRA conservado
+└─ logo.svg      # Resto CRA conservado
+```
 
-## Música y Sonido
-- **Banda Sonora**:
-  - Temas musicales épicos para cada entorno, inspirados en fantasía y aventura.
-  - Melodías dinámicas que se intensifican a medida que el juego avanza y se acerca a su conclusión.
+### Backend: `parchis-remix`
 
-- **Efectos de Sonido**:
-  - Efectos para lanzar el dado, movimientos de fichas, activación de habilidades, y capturas de oponentes.
-  - Voz en off para narrar eventos importantes durante la partida.
+- Stack: NestJS 10, TypeScript, TypeORM, PostgreSQL, JWT y bcrypt.
+- Dev server: `npm run start:dev`, servido normalmente en `http://localhost:3001`.
+- Build: `npm run build`.
+- Tests unitarios: `npm test`.
+- Tests e2e: `npm run test:e2e`.
+- Actualmente no existe logica de juego en backend.
 
-## Tecnologías y Herramientas
-- **Motor de Juego**: Unity, por su versatilidad en juegos multiplataforma.
-- **Lenguajes de Programación**: C# para el desarrollo en Unity.
-- **Herramientas de Diseño**: 
-  - *Photoshop* y *Illustrator* para el arte conceptual y los sprites.
-  - *Blender* para modelado 3D de los personajes y el tablero.
+```text
+parchis-remix/src/
+├─ auth/          # Registro, login y DTOs de auth
+├─ common/guards/ # Guard JWT manual actual
+├─ config/        # Config actual extraida sin cambiar valores
+├─ dashboard/     # Endpoint protegido /dashboard
+├─ health/        # Endpoint raiz actual GET /
+├─ users/         # Entidad, enum y servicio de usuarios
+├─ app.module.ts
+└─ main.ts
+```
 
-## Cronograma y Etapas de Desarrollo
-- **Fase 1: Conceptualización** (1 mes): Definición de mecánicas de juego, personajes, y habilidades.
-- **Fase 2: Prototipo** (2 meses): Desarrollo de un prototipo jugable con un solo tablero y personajes básicos.
-- **Fase 3: Desarrollo** (4 meses): Implementación completa de personajes, habilidades, y entornos adicionales.
-- **Fase 4: Pruebas y Depuración** (2 meses): Testeo intensivo, balance de habilidades, y corrección de errores.
-- **Fase 5: Lanzamiento** (1 mes): Preparación para el lanzamiento en plataformas seleccionadas, marketing, y distribución.
+### Comunicacion Actual
 
-## Notas y Comentarios
-- [Espacio para añadir ideas nuevas, comentarios, y sugerencias durante el desarrollo.]
+- El frontend llama directamente a `http://localhost:3001/auth/login` y `http://localhost:3001/auth/register`.
+- El backend permite CORS desde `http://localhost:3000`.
+- El token JWT se guarda en `localStorage` como `token`.
+- Las rutas protegidas del frontend comprueban solo que exista `token`; no validan el token contra el backend.
 
-## Referencias e Inspiración
-- **Referencias Visuales**:
-  - Juegos de mesa clásicos y modernos con temática fantástica.
-  - Películas y libros de fantasía épica.
-  
-- **Referencias de Jugabilidad**:
-  - Juegos como *Parchís*, *Ludo*, y *Mario Party* para inspiración en mecánicas y diseño de personajes.
-  
-- **Bibliografía**:
-  - Artículos y estudios sobre diseño de juegos de mesa y creación de personajes con habilidades especiales.
+### Configuracion Backend Actual
+
+- PostgreSQL esta configurado en `parchis-remix/src/config/database.config.ts`.
+- Host: `localhost`.
+- Puerto: `5432`.
+- Base de datos: `parchis_remix`.
+- Usuario/password: `postgres`/`postgres`.
+- `synchronize: true` sigue activo.
+- JWT usa el secreto actual `yourSecretKey`.
+
+## Estado Actual de la Pantalla de Juego
+
+La implementacion actual de `parchis_front/src/game` es un prototipo.
+
+Funciona actualmente:
+
+- `/game` carga la pantalla de juego protegida por `PrivateRoute`.
+- `/dev_game` carga la misma pantalla sin proteccion.
+- El tablero se pinta como una tabla HTML hardcodeada.
+- Existen cuatro facciones visuales: verde, roja, azul y amarilla.
+- Cada faccion tiene cuatro fichas representadas por emojis.
+- `Start` abre un modal de seleccion de equipo.
+- Elegir equipo cambia el texto de equipo seleccionado y el color del dado.
+- El dado visual se puede lanzar y guarda el ultimo valor en estado React.
+- Se puede seleccionar una ficha y moverla manualmente a algunas casillas interactivas.
+
+No esta implementado todavia:
+
+- motor de reglas independiente de React;
+- turnos reales;
+- movimientos legales por dado;
+- salida obligatoria con 5;
+- barreras;
+- capturas;
+- casillas seguras;
+- rectas finales;
+- meta;
+- rebote;
+- premios +10 y +20;
+- tres seises consecutivos;
+- condicion de victoria;
+- habilidades de personajes;
+- persistencia o multijugador.
+
+## Principio Arquitectonico del Motor
+
+La logica del juego no debe implementarse directamente dentro de componentes React.
+
+Debe existir una separacion clara entre motor/reglas, estado de partida e interfaz React.
+
+El motor sera la fuente de verdad sobre las reglas. React sera responsable principalmente de representar el estado, mostrar el tablero, mostrar personajes, mostrar el dado, resaltar acciones disponibles, recibir decisiones del jugador, enviar acciones al motor y representar el resultado devuelto por el motor.
+
+React no debe decidir directamente que movimientos son legales, que personaje puede moverse, cuando existe una captura, cuando existe una barrera, como funciona el rebote, quien gana, que consecuencias tiene una tirada ni como se resuelve una recompensa.
+
+## Jugadores y Facciones
+
+Las partidas pueden tener 2, 3 o 4 jugadores.
+
+Existen cuatro facciones:
+
+- Verde
+- Roja
+- Azul
+- Amarilla
+
+Cada jugador controla exactamente una faccion. Las facciones que no sean seleccionadas quedan inactivas durante la partida y no reciben turnos.
+
+## Seleccion de Facciones y Orden de Juego
+
+Antes de comenzar la partida se realizan dos sorteos independientes.
+
+### Sorteo 1: Orden de Eleccion de Faccion
+
+El juego determina aleatoriamente el orden en el que los jugadores eligen faccion.
+
+Los jugadores eligen uno por uno. Cuando una faccion ha sido elegida deja de estar disponible para los demas jugadores.
+
+### Sorteo 2: Orden de Turnos
+
+Despues de seleccionar las facciones se realiza un segundo sorteo independiente.
+
+Este sorteo determina quien comienza y el orden de juego.
+
+El orden resultante se mantiene durante la partida salvo que en el futuro una habilidad indique explicitamente lo contrario.
+
+## Personajes
+
+Cada faccion tiene exactamente cuatro personajes exclusivos. Los personajes son las cuatro fichas de Parchis de ese jugador.
+
+### Faccion Verde
+
+- Druida
+- Arquero
+- Montaraz
+- Hada
+
+### Faccion Roja
+
+- Mago de fuego
+- Guerrero
+- Herrero
+- Asesino
+
+### Faccion Azul
+
+- Mago de hielo
+- Cazador
+- Alquimista
+- Clerigo
+
+### Faccion Amarilla
+
+- Paladin
+- Monje
+- Ladron
+- Ingeniero
+
+Cada personaje tendra posteriormente una habilidad propia. Las habilidades no deben implementarse todavia.
+
+El motor debe diseñarse sabiendo que una ficha no es simplemente un token generico: representa un personaje con identidad propia y podra tener reglas o modificadores particulares.
+
+## Estado Inicial
+
+Los cuatro personajes de cada faccion comienzan en casa.
+
+Un personaje que esta en casa no se considera dentro del recorrido.
+
+Los personajes en casa no pueden recibir movimientos de recompensa.
+
+La unica forma base de sacar un personaje de casa es obtener un 5.
+
+## Salida de Casa
+
+Cuando un jugador obtiene un 5 y todavia tiene uno o mas personajes en casa:
+
+- esta obligado a sacar un personaje;
+- unicamente los personajes que esten en casa deben mostrarse como seleccionables;
+- el jugador elige cual de ellos quiere sacar;
+- el personaje se coloca en la casilla de salida correspondiente a su faccion.
+
+Si no quedan personajes en casa, el 5 se utiliza como un movimiento normal.
+
+Una salida obligatoria por obtener un 5 nunca puede ser bloqueada por una barrera.
+
+Si la casilla de salida contiene dos personajes y debe salir un nuevo personaje:
+
+- el jugador activo elige cual de los dos personajes existentes es eliminado;
+- el personaje eliminado vuelve a su casa;
+- el personaje que acaba de salir ocupa su lugar;
+- el otro ocupante permanece en la casilla.
+
+Esto se aplica independientemente de si la barrera pertenece al jugador activo o a otra faccion.
+
+Esta eliminacion se considera una muerte involuntaria provocada por la salida y no una captura. Por tanto, no concede la recompensa de +20.
+
+Toda decision necesaria para resolver esta situacion la toma el jugador activo para evitar interrumpir el turno solicitando decisiones a otro jugador.
+
+## Tablero Base y Recorridos
+
+El recorrido comun utiliza 68 casillas numeradas del 1 al 68.
+
+El movimiento sigue el orden `1 -> 2 -> 3 -> ... -> 68 -> 1`.
+
+Las salidas son:
+
+- Amarillo: 5
+- Azul: 22
+- Rojo: 39
+- Verde: 56
+
+Cada faccion completa su recorrido correspondiente antes de entrar en su recta final.
+
+Recorrido amarillo:
+
+```text
+5 -> 6 -> ... -> 68 -> 1 -> ... -> 4 -> recta final amarilla
+```
+
+Ultima casilla comun: 4.
+
+Recorrido azul:
+
+```text
+22 -> 23 -> ... -> 68 -> 1 -> ... -> 21 -> recta final azul
+```
+
+Ultima casilla comun: 21.
+
+Recorrido rojo:
+
+```text
+39 -> 40 -> ... -> 68 -> 1 -> ... -> 38 -> recta final roja
+```
+
+Ultima casilla comun: 38.
+
+Recorrido verde:
+
+```text
+56 -> 57 -> ... -> 68 -> 1 -> ... -> 55 -> recta final verde
+```
+
+Ultima casilla comun: 55.
+
+## Casillas Seguras
+
+Se utiliza la misma distribucion base de seguros que el Parchis clasico.
+
+Las casillas seguras son: 5, 12, 17, 22, 29, 34, 39, 46, 51, 56, 63 y 68.
+
+Las cuatro casillas de salida son por tanto tambien casillas seguras.
+
+Visualmente los seguros deberan distinguirse del resto mediante algun simbolo, por ejemplo un circulo u otro indicador. El simbolo utilizado es una decision de UI y no forma parte de las reglas del motor.
+
+## Ocupacion de Casillas
+
+Una casilla puede contener como maximo dos personajes. Esto se aplica tambien a las casillas seguras.
+
+Dos personajes de la misma faccion pueden compartir una casilla. Cuando lo hacen forman una barrera.
+
+En una casilla segura pueden coexistir dos personajes de facciones diferentes sin que se produzca una captura.
+
+En una casilla normal, dos personajes enemigos no pueden coexistir.
+
+Si un personaje termina legalmente su movimiento en una casilla normal ocupada por un enemigo, se produce una captura salvo que una habilidad indique explicitamente lo contrario.
+
+## Barreras
+
+Dos personajes de la misma faccion situados en la misma casilla forman una barrera.
+
+Las barreras son infranqueables.
+
+Un movimiento es ilegal si necesita atravesar una barrera, terminar sobre una barrera o alcanzar una posicion situada despues de una barrera atravesandola.
+
+Las barreras bloquean tambien a personajes de la misma faccion.
+
+El motor debe comprobar todo el recorrido del movimiento y no unicamente la casilla de destino.
+
+Las unicas excepciones actualmente definidas son la salida obligatoria por obtener un 5 y futuras habilidades que indiquen explicitamente que pueden ignorar alguna regla de barreras.
+
+## Barreras y Tirada de 6
+
+Cuando un jugador obtiene un 6 y tiene una o mas barreras propias:
+
+- esta obligado a intentar romper una barrera;
+- para hacerlo debe mover uno de los personajes que forman una barrera.
+
+Si existen varios movimientos legales que rompen barreras, el jugador puede elegir entre ellos.
+
+Si ninguna barrera puede romperse legalmente con ese 6, se calculan los movimientos legales normales del resto de personajes y el jugador puede elegir uno de ellos.
+
+Si tampoco existe ningun movimiento legal, no se mueve ningun personaje.
+
+En todos los casos, haber obtenido un 6 concede una nueva tirada.
+
+## Movimiento y Seleccion
+
+Una tirada de dado representa el numero de casillas que puede mover un unico personaje.
+
+Una tirada nunca puede dividirse entre varios personajes.
+
+Despues de tirar el dado, el motor debe calcular todos los personajes que pueden realizar legalmente ese movimiento.
+
+La interfaz debera resaltar unicamente esos personajes.
+
+El jugador solo puede seleccionar un personaje disponible.
+
+Si existe al menos un movimiento legal, el jugador esta obligado a realizar uno.
+
+Solo se pierde el movimiento cuando no existe ninguna opcion legal.
+
+El motor, y no React, debe determinar que personajes tienen movimientos legales.
+
+El rebote en meta se considera un movimiento legal. Por tanto, superar temporalmente la meta durante el recorrido no convierte a un personaje en no disponible.
+
+## Dado y Turnos
+
+El dado base utiliza valores del 1 al 6.
+
+Un 6 siempre equivale a exactamente 6 movimientos. Nunca se convierte en 7 aunque todos los personajes hayan salido de casa.
+
+Cuando un jugador obtiene un 6:
+
+- realiza el movimiento si existe alguno legal;
+- resuelve completamente las consecuencias y recompensas de ese movimiento;
+- despues vuelve a tirar.
+
+Si no existe ningun movimiento legal para el 6:
+
+- no mueve;
+- conserva igualmente el derecho a volver a tirar.
+
+El 6 cuenta para la secuencia de tres seises aunque no se haya podido mover ningun personaje.
+
+## Tres Seises Consecutivos
+
+Los seises consecutivos se contabilizan dentro del mismo turno.
+
+Al obtener el tercer 6 consecutivo:
+
+- el jugador no realiza un movimiento correspondiente a ese tercer 6;
+- se activa inmediatamente la penalizacion;
+- el turno termina.
+
+El tercer 6 no genera ningun movimiento. Por tanto, no puede provocar capturas, llegada a meta ni generar nuevas recompensas. Cualquier recompensa pendiente anterior se considera resuelta antes de realizar la siguiente tirada de dado.
+Para determinar que personaje es penalizado:
+
+- se mantiene un historial de personajes que hayan realizado movimientos durante ese turno;
+- se consulta desde el movimiento mas reciente hacia atras;
+- el primer personaje encontrado que siga activo en el tablero vuelve a casa;
+- los personajes que ya hayan llegado a meta estan protegidos y se ignoran;
+- si ninguno de los personajes movidos durante ese turno sigue disponible, nadie vuelve a casa.
+
+Solo deben considerarse personajes que hayan realizado realmente un movimiento durante ese turno.
+Los movimientos realizados mediante recompensas tambien forman parte del historial de movimientos del turno.
+
+Esto incluye tanto los movimientos de recompensa por captura (+20 base) como los movimientos de recompensa por llegada a meta (+10).
+
+A efectos de la penalizacion por tres 6 consecutivos, un movimiento realizado mediante una recompensa cuenta exactamente igual que un movimiento realizado como consecuencia de una tirada de dado.
+
+Por tanto, al buscar el personaje que debe ser penalizado, siempre se consulta el historial desde el movimiento real mas reciente hacia atras, independientemente del origen de cada movimiento.
+
+## Capturas
+
+Por regla base, una captura ocurre unicamente cuando un personaje termina su movimiento en una casilla normal ocupada por un personaje enemigo.
+
+Pasar por encima de un personaje enemigo durante un movimiento no provoca captura.
+
+Las habilidades podran crear excepciones a esta regla.
+
+Cuando se produce una captura:
+
+- el personaje capturado vuelve a casa;
+- el personaje que realizo la captura obtiene una recompensa base de +20 movimientos.
+
+Los +20 pertenecen obligatoriamente al mismo personaje que realizo la captura. No pueden transferirse a otro personaje.
+
+El movimiento de recompensa es un movimiento real y debe respetar barreras, seguros, rectas finales, rebote, ocupacion maxima y demas reglas del motor.
+
+La recompensa de +20 constituye un único movimiento indivisible.
+
+El personaje que realizó la captura debe poder realizar legalmente los +20 movimientos completos. Los +20 no pueden realizarse parcialmente ni repartirse entre varios personajes.
+
+Si el personaje que realizó la captura no puede completar legalmente los +20 movimientos, la recompensa se pierde por completo y no se almacena para utilizarla posteriormente.
+
+Los movimientos de recompensa pueden provocar nuevas capturas. Las capturas pueden encadenarse sin un limite artificial.
+
+Cada captura se resuelve completamente antes de continuar con la siguiente consecuencia.
+
+Una habilidad podra modificar en el futuro la recompensa base de +20.
+
+## Recompensas y Tiradas
+
+Las recompensas son independientes de las tiradas del dado.
+
+Resolver una recompensa:
+
+- no consume una tirada pendiente;
+- no cancela una repeticion obtenida por sacar 6;
+- no cuenta como una nueva tirada;
+- no afecta directamente al contador de seises consecutivos.
+
+Ejemplo:
+
+```text
+6 -> movimiento -> captura -> +20 -> otra captura -> +20 -> resolucion completa -> nueva tirada por el 6 original
+```
+
+## Rectas Finales
+
+Cada faccion tiene una recta final exclusiva.
+
+Solo los personajes de esa faccion pueden entrar en ella.
+
+Cada recta final contiene 7 casillas.
+
+Despues de esas 7 casillas existe una posicion adicional denominada META.
+
+Modelo conceptual:
+
+```text
+CASA -> RECORRIDO COMUN -> RECTA FINAL 1 -> ... -> RECTA FINAL 7 -> META
+```
+
+Una vez dentro de la recta final:
+
+- los enemigos no pueden entrar;
+- no existen capturas entre facciones;
+- el personaje no vuelve al recorrido comun;
+- el rebote ocurre exclusivamente dentro de la recta final.
+
+Dos personajes de la misma faccion pueden ocupar la misma casilla de su recta final. En ese caso forman una barrera y pueden bloquear a los personajes propios que vengan por detras.
+
+## Meta y Rebote
+
+Para entrar definitivamente en meta es necesario que el movimiento termine exactamente en META.
+
+Si existen movimientos sobrantes, el personaje rebota.
+
+Ejemplo conceptual:
+
+```text
+Si un personaje esta a 2 movimientos de META y debe mover 4:
+posicion -> recta 7 -> META -> recta 7 -> recta 6
+```
+
+El personaje termina en recta 6.
+
+Pasar temporalmente por META durante un rebote no significa haber terminado. El movimiento debe consumirse completamente.
+
+Esta regla tambien se aplica a movimientos de recompensa como +10 y +20.
+
+### Ocupacion de META
+
+META no se considera una casilla normal a efectos de ocupacion.
+
+No esta sujeta al limite maximo de dos personajes por casilla. Los cuatro personajes de una misma faccion pueden encontrarse finalizados en META simultaneamente.
+
+Los personajes que han llegado exactamente a META se consideran finalizados y dejan de ocupar una posicion jugable del tablero.
+
+## Premio por Llegar a Meta
+
+Cuando un personaje llega exactamente a META:
+
+- queda marcado como finalizado;
+- deja de participar en movimientos normales;
+- no puede volver a casa;
+- el jugador obtiene una recompensa base de +10 movimientos.
+
+El jugador elige que otro personaje de su faccion recibe los +10.
+
+El personaje elegido debe estar fuera de casa, seguir activo y poder realizar legalmente el movimiento de +10.
+
+Los personajes en casa no pueden recibir esta recompensa.
+
+Si ningun personaje puede realizar legalmente los +10 movimientos, la recompensa se pierde y no se almacena para turnos posteriores.
+
+Los +10 constituyen un movimiento real y pueden provocar capturas. Una captura producida por esos +10 genera normalmente su recompensa de +20.
+
+## Victoria
+
+Cuando los cuatro personajes de una faccion han llegado a META:
+
+- ese jugador gana inmediatamente;
+- la partida termina.
+
+No existe actualmente ninguna condicion adicional de victoria.
+
+## Habilidades y Excepciones Futuras
+
+Las habilidades de los personajes se diseñaran en una fase posterior.
+
+El motor debe prepararse para que una habilidad pueda modificar reglas concretas sin duplicar o reescribir el motor completo.
+
+Ejemplos conceptuales de futuras excepciones:
+
+- un Arquero podria atacar a distancia;
+- un personaje podria modificar la recompensa de captura;
+- un personaje podria interactuar de forma especial con barreras;
+- un personaje podria modificar determinadas reglas de movimiento.
+
+Estos ejemplos no significan que dichas habilidades esten aprobadas ni deben implementarse ahora. Solo ilustran el tipo de extensibilidad que debera soportar el motor.
+
+La regla general sera:
+
+```text
+REGLA BASE + MODIFICADOR/EXCEPCION EXPLICITA DEL PERSONAJE = RESULTADO FINAL
+```
+
+## Arquitectura Objetivo del Motor
+
+No implementar esta arquitectura todavia, pero la implementacion futura debera buscar una separacion similar a:
+
+```text
+src/game/
+  engine/
+    board/
+    state/
+    movement/
+    rules/
+    turns/
+  components/
+  hooks/
+```
+
+Los nombres exactos de archivos pueden adaptarse cuando se implemente.
+
+Priorizar:
+
+- funciones puras;
+- reglas independientes de React;
+- estado explicito;
+- resultados deterministas cuando no intervenga aleatoriedad;
+- tests unitarios del motor;
+- pequeñas funciones con responsabilidades claras.
+
+Evitar un unico archivo gigante con todas las reglas.
+
+## Tests Esperados del Motor
+
+Cuando se implemente el motor, las reglas base deberan tener tests unitarios.
+
+Los tests deberan cubrir especialmente:
+
+- salida con 5;
+- salida bloqueada;
+- movimientos legales e ilegales;
+- barreras;
+- seguros;
+- capturas;
+- capturas encadenadas;
+- recompensa +20;
+- llegada a recta final;
+- rebote;
+- recompensa +10;
+- llegada a meta;
+- turnos;
+- repeticion por 6;
+- tres 6 consecutivos;
+- ausencia de movimientos legales;
+- condicion de victoria.
+
+## Roadmap de Desarrollo
+
+FASE 1: Motor base de Parchis independiente de React.
+
+FASE 2: Tests completos del motor.
+
+FASE 3: Integracion del motor con la interfaz React existente.
+
+FASE 4: Partida local completa para 2, 3 y 4 jugadores.
+
+FASE 5: Diseño e implementacion de los 16 personajes y sus habilidades.
+
+FASE 6: Mecanicas especiales del juego y posibles casillas/zonas especiales.
+
+FASE 7: Solo posteriormente considerar funcionalidades como persistencia de partidas, multijugador, WebSockets, matchmaking o validacion server-side.
+
+## Ideas de Diseño Heredadas
+
+La documentacion anterior describia una ambientacion fantastica con un torneo de Parchis, tablero flotante, criaturas miticas, castillos, entornos como fortaleza, bosque encantado y volcan, menus, HUD, accesibilidad, musica y efectos de sonido.
+
+Estas ideas siguen siendo utiles como inspiracion visual y de producto, pero no sustituyen las reglas definidas en este README.
+
+La documentacion anterior tambien mencionaba Unity y C# como tecnologia objetivo. Esa informacion queda superada por el estado tecnico actual: el proyecto existente usa React en frontend y NestJS en backend.
+
+La lista antigua de personajes y habilidades queda superada por las facciones y personajes definidos en este README. Las habilidades concretas se diseñaran mas adelante.

@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
-import { GenderEnum } from '../dto/gender.enum';
+import { GenderEnum } from './gender.enum';
 
 @Entity('user')
 export class User {

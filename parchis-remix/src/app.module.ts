@@ -1,30 +1,20 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { User } from './auth/entities/user.entity';
-import { UserModule } from './user/user.module';
+import { User } from './users/user.entity';
+import { UsersModule } from './users/users.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { databaseConfig } from './config/database.config';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'postgres',
-      database: 'parchis_remix',
-      autoLoadEntities: true,
-      synchronize: true,
-    }),
+    TypeOrmModule.forRoot(databaseConfig),
     TypeOrmModule.forFeature([User]),
     AuthModule,
-    UserModule,
+    UsersModule,
     DashboardModule,
+    HealthModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}

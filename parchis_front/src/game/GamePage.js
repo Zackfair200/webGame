@@ -1,7 +1,7 @@
 import React from 'react';
-import Board from '../game/Board';
-import './Game.css';
-import {GameStateProvider} from '../game/use_game'
+import Board from './Board';
+import './GamePage.css';
+import {GameStateProvider} from './use_game'
 const Game = () => {
   return (
     <GameStateProvider>

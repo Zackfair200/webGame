@@ -73,7 +73,11 @@ function findRouteIndex(route, position) {
   return route.findIndex((routePosition) => positionsMatch(routePosition, position));
 }
 
-function calculateBounceDestination(factionId, stepsBeyondGoal) {
+function clonePosition(position) {
+  return { ...position };
+}
+
+function calculateBouncePath(factionId, stepsBeyondGoal) {
   if (stepsBeyondGoal > FINAL_LANE_LENGTH) {
     return {
       ok: false,
@@ -83,11 +87,13 @@ function calculateBounceDestination(factionId, stepsBeyondGoal) {
 
   return {
     ok: true,
-    destination: createFinalLanePosition(factionId, FINAL_LANE_LENGTH - stepsBeyondGoal + 1),
+    path: Array.from({ length: stepsBeyondGoal }, (_, index) =>
+      createFinalLanePosition(factionId, FINAL_LANE_LENGTH - index),
+    ),
   };
 }
 
-export function calculateDestination({ factionId, from, steps }) {
+function calculateMovementGeometry({ factionId, from, steps }) {
   assertValidFaction(factionId);
   assertValidSteps(steps);
   assertValidPositionForFaction(from, factionId);
@@ -103,11 +109,52 @@ export function calculateDestination({ factionId, from, steps }) {
   const destinationIndex = currentIndex + steps;
 
   if (destinationIndex <= goalIndex) {
+    const path = route.slice(currentIndex + 1, destinationIndex + 1);
+
     return {
       ok: true,
-      destination: route[destinationIndex],
+      path,
+      destination: path[path.length - 1],
     };
   }
 
-  return calculateBounceDestination(factionId, destinationIndex - goalIndex);
+  const bounceResult = calculateBouncePath(factionId, destinationIndex - goalIndex);
+
+  if (!bounceResult.ok) {
+    return bounceResult;
+  }
+
+  const path = [...route.slice(currentIndex + 1, goalIndex + 1), ...bounceResult.path];
+
+  return {
+    ok: true,
+    path,
+    destination: path[path.length - 1],
+  };
+}
+
+export function calculateDestination(input) {
+  const result = calculateMovementGeometry(input);
+
+  if (!result.ok) {
+    return result;
+  }
+
+  return {
+    ok: true,
+    destination: clonePosition(result.destination),
+  };
+}
+
+export function calculateMovementPath(input) {
+  const result = calculateMovementGeometry(input);
+
+  if (!result.ok) {
+    return result;
+  }
+
+  return {
+    ok: true,
+    path: result.path.map(clonePosition),
+  };
 }

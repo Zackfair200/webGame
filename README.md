@@ -493,6 +493,24 @@ Pasar temporalmente por META durante un rebote no significa haber terminado. El 
 
 Esta regla tambien se aplica a movimientos de recompensa como +10 y +20.
 
+### Limite del rebote
+
+El rebote se produce unicamente al alcanzar META con movimientos sobrantes.
+
+Durante el rebote, el personaje retrocede por su propia recta final.
+
+No existe un segundo rebote al alcanzar el inicio de la recta final.
+
+Si los movimientos restantes obligasen al personaje a retroceder mas alla de `finalLane 1`, el movimiento completo se considera ilegal.
+
+Por tanto, un personaje solo puede realizar un movimiento con rebote si puede consumir todos los pasos permaneciendo dentro de su recta final.
+
+Esta regla se aplica independientemente del origen del movimiento.
+
+Si el movimiento procede de una tirada de dado, ese personaje no se considera disponible para dicha tirada.
+
+Si el movimiento procede de una recompensa indivisible como +10 o +20, se aplican las reglas correspondientes de dicha recompensa cuando el movimiento no puede completarse legalmente.
+
 ### Ocupacion de META
 
 META no se considera una casilla normal a efectos de ocupacion.

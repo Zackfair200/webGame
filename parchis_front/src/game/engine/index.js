@@ -2,5 +2,7 @@ export * from './board/board';
 export * from './board/routes';
 export * from './factions/factions';
 export * from './movement/movement';
+export * from './occupancy/occupancy';
+export * from './rules/barriers/barriers';
 export * from './state/initialState';
 export * from './state/positions';

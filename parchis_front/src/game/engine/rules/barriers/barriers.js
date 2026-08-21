@@ -1,5 +1,24 @@
 import { assertCharactersArray, getOccupantsAtPosition } from '../../occupancy/occupancy';
-import { clonePosition, isPlayablePosition } from '../../state/positions';
+import { getFactionIds } from '../../factions/factions';
+import { clonePosition, isPlayablePosition, isSamePosition } from '../../state/positions';
+
+function assertValidFactionId(factionId) {
+  if (!getFactionIds().includes(factionId)) {
+    throw new Error(`Invalid faction id: ${factionId}`);
+  }
+}
+
+function hasPosition(positions, position) {
+  return positions.some((existingPosition) => isSamePosition(existingPosition, position));
+}
+
+function createBarrierResult(barrier) {
+  return {
+    position: clonePosition(barrier.position),
+    factionId: barrier.factionId,
+    occupants: barrier.occupants,
+  };
+}
 
 export function getBarrierAtPosition({ position, characters }) {
   assertCharactersArray(characters);
@@ -28,6 +47,28 @@ export function getBarrierAtPosition({ position, characters }) {
 
 export function isBarrierAtPosition({ position, characters }) {
   return getBarrierAtPosition({ position, characters }).exists;
+}
+
+export function getBarriersForFaction({ factionId, characters }) {
+  assertCharactersArray(characters);
+  assertValidFactionId(factionId);
+
+  const candidatePositions = [];
+
+  characters.forEach((character) => {
+    if (character.factionId !== factionId || !isPlayablePosition(character.position)) {
+      return;
+    }
+
+    if (!hasPosition(candidatePositions, character.position)) {
+      candidatePositions.push(character.position);
+    }
+  });
+
+  return candidatePositions
+    .map((position) => getBarrierAtPosition({ position, characters }))
+    .filter((barrier) => barrier.exists && barrier.factionId === factionId)
+    .map(createBarrierResult);
 }
 
 export function checkPathBlockedByBarrier({ path, characters, movingCharacterId }) {

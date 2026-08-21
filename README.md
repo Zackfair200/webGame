@@ -330,9 +330,15 @@ Cuando un jugador obtiene un 6 y tiene una o mas barreras propias:
 - esta obligado a intentar romper una barrera;
 - para hacerlo debe mover uno de los personajes que forman una barrera.
 
+Una barrera se considera rota únicamente si, después de completar el movimiento, los dos personajes que la formaban dejan de ocupar la misma casilla.
+
+Un movimiento que termine dejando a ambos personajes nuevamente en la misma casilla no se considera una ruptura legal de barrera.
+
 Si existen varios movimientos legales que rompen barreras, el jugador puede elegir entre ellos.
 
 Si ninguna barrera puede romperse legalmente con ese 6, se calculan los movimientos legales normales del resto de personajes y el jugador puede elegir uno de ellos.
+
+En este caso, "resto de personajes" se refiere exclusivamente a los personajes de la facción que no forman parte de ninguna barrera propia. Los personajes que forman una barrera propia no participan en este cálculo de movimientos normales.
 
 Si tampoco existe ningun movimiento legal, no se mueve ningun personaje.
 

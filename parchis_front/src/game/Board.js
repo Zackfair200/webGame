@@ -1,17 +1,15 @@
 import "./Board.css";
 import Dice from "react-dice-complete";
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import TeamSelectionModal from "./TeamSelectionModal"; // Importa el modal
-
-const classEmojiMap = {
-  warrior: "⚔",
-  mage: "🧙‍♂️",
-  archer: "🏹",
-  druid: "🧝‍♂️",
-};
+import { getCharacterAsset, Characters } from "./assets/characters";
+import { Players } from "./assets/players";
+import {HomeBox} from './HomeBox'
+import {BoardBox} from './BoardBox'
 
 const Board = () => {
   const [diceValue, setDiceValue] = useState(1);
+  const activeToken = { player: Players.Green, character: Characters.Mage };
   const [isModalOpen, setModalOpen] = useState(false); // Estado para el modal
   const [team, setTeam] = useState(null); // Estado para el equipo seleccionado
   const [selectedTeamColor, setSelectedTeamColor] = useState("#B0B0B0"); // Color neutro inicial (gris claro)
@@ -28,33 +26,6 @@ const Board = () => {
 
   const handleCloseModal = () => {
     setModalOpen(false); // Cierra el modal
-  };
-
-  const gameState = {
-    green: {
-      warrior: 0,
-      mage: 14,
-      archer: 0,
-      druid: 0,
-    },
-    blue: {
-      warrior: 0,
-      mage: 0,
-      archer: 13,
-      druid: 0,
-    },
-    red: {
-      warrior: 0,
-      mage: 0,
-      archer: 0,
-      druid: 0,
-    },
-    yellow: {
-      warrior: 0,
-      mage: 12,
-      archer: 0,
-      druid: 13,
-    },
   };
 
   const handleTeamSelect = (selectedTeam) => {
@@ -94,11 +65,11 @@ const Board = () => {
       <table>
         <tbody>
           <tr>
-            <HomeBox player="yellow" gameState={gameState} />
+            <HomeBox player={Players.Yellow} />
             <td colSpan="2">1</td>
             <td colSpan="2">68</td>
             <td colSpan="2">67</td>
-            <HomeBox player="green" gameState={gameState} />
+            <HomeBox player={Players.Green} />
           </tr>
           <tr>
             <td colSpan="2">2</td>
@@ -145,13 +116,13 @@ const Board = () => {
             <td colSpan="2">61</td>
           </tr>
           <tr>
-            <td rowSpan="2">16</td>
-            <td rowSpan="2">15</td>
-            <BoardBox position={14} gameState={gameState} />
-            <BoardBox position={13} gameState={gameState} />
-            <BoardBox position={12} gameState={gameState} />
-            <td rowSpan="2">11</td>
-            <td rowSpan="2">10</td>
+            <BoardBox position={16} />
+            <BoardBox position={15} />
+            <BoardBox position={14} />
+            <BoardBox position={13} />
+            <BoardBox position={12} />
+            <BoardBox position={11} />
+            <BoardBox position={10} />
             <td id="vacio"></td>
             <td>8</td>
             <td>-</td>
@@ -253,13 +224,13 @@ const Board = () => {
             <td id="vacio"></td>
           </tr>
           <tr>
-            <HomeBox player="blue" gameState={gameState} />
+            <HomeBox player={Players.Blue} />
             <td colSpan="2">27</td>
             <td className="rojo" colSpan="2">
               -
             </td>
             <td colSpan="2">41</td>
-            <HomeBox player="red" gameState={gameState} />
+            <HomeBox player={Players.Red} />
           </tr>
           <tr>
             <td colSpan="2">28</td>
@@ -359,24 +330,15 @@ function getTokensForPosition(gameState, position) {
 }
 
 function BoardBox(props) {
-  const tokens = getTokensForPosition(props.gameState, props.position);
   return (
     <td rowSpan="2">
-      <div className="board-box">
-        {props.position}
-        {tokens.length > 0 && (
-          <div className="boxTokenGroup">
-            {tokens.map((playerToken) => {
-              const tokenClassName = `emoji token player-${playerToken.player}`;
-              return (
-                <span className={tokenClassName}>
-                  {classEmojiMap[playerToken.character]}
-                </span>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {props.position}
+      {getTokensForPosition(props.gameState, props.position).map(
+        (playerToken) => {
+          const tokenClassName = `emoji token player-${playerToken.player}`
+          return <span className={tokenClassName}>{classEmojiMap[playerToken.character]}</span>;
+        }
+      )}
     </td>
   );
 }

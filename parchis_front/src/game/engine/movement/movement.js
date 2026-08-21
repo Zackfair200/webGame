@@ -1,7 +1,7 @@
 import { COMMON_SQUARE_COUNT, FINAL_LANE_LENGTH } from '../board/board';
 import { ROUTES_BY_FACTION } from '../board/routes';
 import { getFactionIds } from '../factions/factions';
-import { POSITION_TYPES, createFinalLanePosition } from '../state/positions';
+import { POSITION_TYPES, clonePosition, createFinalLanePosition, isSamePosition } from '../state/positions';
 
 export const MOVEMENT_FAILURE_REASONS = Object.freeze({
   MOVEMENT_BEYOND_FINAL_LANE_START: 'movementBeyondFinalLaneStart',
@@ -53,28 +53,8 @@ function assertValidPositionForFaction(from, factionId) {
   throw new Error(`Invalid position type: ${from.type}`);
 }
 
-function positionsMatch(left, right) {
-  if (left.type !== right.type) {
-    return false;
-  }
-
-  if (left.type === POSITION_TYPES.COMMON) {
-    return left.square === right.square;
-  }
-
-  if (left.type === POSITION_TYPES.FINAL_LANE) {
-    return left.factionId === right.factionId && left.index === right.index;
-  }
-
-  return true;
-}
-
 function findRouteIndex(route, position) {
-  return route.findIndex((routePosition) => positionsMatch(routePosition, position));
-}
-
-function clonePosition(position) {
-  return { ...position };
+  return route.findIndex((routePosition) => isSamePosition(routePosition, position));
 }
 
 function calculateBouncePath(factionId, stepsBeyondGoal) {

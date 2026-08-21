@@ -1,7 +1,8 @@
 import { FACTION_IDS, getFactionIds } from '../factions/factions';
 import { createFinalLanePosition, createGoalPosition } from '../state/positions';
+import { COMMON_SQUARE_COUNT, FINAL_LANE_LENGTH } from './constants';
 
-export const COMMON_SQUARE_COUNT = 68;
+export { COMMON_SQUARE_COUNT, FINAL_LANE_LENGTH } from './constants';
 
 export const COMMON_SQUARES = Object.freeze(
   Array.from({ length: COMMON_SQUARE_COUNT }, (_, index) => index + 1),
@@ -22,8 +23,6 @@ export const LAST_COMMON_SQUARE_BY_FACTION = Object.freeze({
   [FACTION_IDS.RED]: 38,
   [FACTION_IDS.GREEN]: 55,
 });
-
-export const FINAL_LANE_LENGTH = 7;
 
 export const FINAL_LANES_BY_FACTION = Object.freeze(
   getFactionIds().reduce((lanes, factionId) => {

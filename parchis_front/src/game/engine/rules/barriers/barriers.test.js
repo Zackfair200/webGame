@@ -6,6 +6,7 @@ import {
   createFinalLanePosition,
   createGoalPosition,
   createHomePosition,
+  getBarriersForFaction,
   getBarrierAtPosition,
   isBarrierAtPosition,
 } from '../../index';
@@ -135,6 +136,138 @@ describe('barrier detection', () => {
       createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
       createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
     ]);
+  });
+});
+
+describe('getBarriersForFaction', () => {
+  test.each([undefined, null, {}])('rejects non-array characters: %s', (characters) => {
+    expect(() => getBarriersForFaction({ factionId: FACTION_IDS.RED, characters })).toThrow(
+      'characters must be an array.',
+    );
+  });
+
+  test('rejects an invalid faction id', () => {
+    expect(() => getBarriersForFaction({ factionId: 'purple', characters: [] })).toThrow(
+      'Invalid faction id: purple',
+    );
+  });
+
+  test('returns an empty array when the faction has no barriers', () => {
+    const characters = [
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(11) }),
+      createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(10) }),
+    ];
+
+    expect(getBarriersForFaction({ factionId: FACTION_IDS.RED, characters })).toEqual([]);
+  });
+
+  test('finds own barriers on common positions', () => {
+    const characters = [
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(20) }),
+      createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(20) }),
+    ];
+
+    expect(getBarriersForFaction({ factionId: FACTION_IDS.RED, characters })).toEqual([
+      {
+        position: createCommonPosition(10),
+        factionId: FACTION_IDS.RED,
+        occupants: [characters[0], characters[1]],
+      },
+    ]);
+  });
+
+  test('finds own barriers on final lane positions', () => {
+    const position = createFinalLanePosition(FACTION_IDS.RED, 3);
+    const characters = [
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position }),
+    ];
+
+    expect(getBarriersForFaction({ factionId: FACTION_IDS.RED, characters })).toEqual([
+      {
+        position,
+        factionId: FACTION_IDS.RED,
+        occupants: characters,
+      },
+    ]);
+  });
+
+  test('does not treat home or goal occupants as barriers', () => {
+    const characters = [
+      createCharacter({ id: 'red.home.1', factionId: FACTION_IDS.RED, position: createHomePosition() }),
+      createCharacter({ id: 'red.home.2', factionId: FACTION_IDS.RED, position: createHomePosition() }),
+      createCharacter({ id: 'red.goal.1', factionId: FACTION_IDS.RED, position: createGoalPosition() }),
+      createCharacter({ id: 'red.goal.2', factionId: FACTION_IDS.RED, position: createGoalPosition() }),
+    ];
+
+    expect(getBarriersForFaction({ factionId: FACTION_IDS.RED, characters })).toEqual([]);
+  });
+
+  test('returns barriers in first-position encounter order', () => {
+    const characters = [
+      createCharacter({ id: 'red.3', factionId: FACTION_IDS.RED, position: createCommonPosition(30) }),
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      createCharacter({ id: 'red.4', factionId: FACTION_IDS.RED, position: createCommonPosition(30) }),
+    ];
+
+    expect(getBarriersForFaction({ factionId: FACTION_IDS.RED, characters }).map((barrier) => barrier.position)).toEqual([
+      createCommonPosition(30),
+      createCommonPosition(10),
+    ]);
+  });
+
+  test('rejects own barrier positions with more than two occupants', () => {
+    const characters = [
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      createCharacter({ id: 'red.3', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+    ];
+
+    expect(() => getBarriersForFaction({ factionId: FACTION_IDS.RED, characters })).toThrow(
+      'Cannot evaluate barrier at a position with more than two occupants.',
+    );
+  });
+
+  test('returns defensive copies', () => {
+    const characters = [
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+    ];
+    const result = getBarriersForFaction({ factionId: FACTION_IDS.RED, characters });
+
+    result[0].position.square = 99;
+    result[0].occupants[0].position.square = 99;
+
+    expect(characters).toEqual([
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+    ]);
+    expect(getBarriersForFaction({ factionId: FACTION_IDS.RED, characters })[0].position).toEqual(
+      createCommonPosition(10),
+    );
+  });
+
+  test('mutating returned occupants array does not affect later calls', () => {
+    const characters = [
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+    ];
+    const result = getBarriersForFaction({ factionId: FACTION_IDS.RED, characters });
+
+    result[0].occupants.pop();
+    result[0].occupants.push(
+      createCharacter({ id: 'changed', factionId: FACTION_IDS.RED, position: createCommonPosition(99) }),
+    );
+
+    expect(characters).toEqual([
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+    ]);
+    expect(getBarriersForFaction({ factionId: FACTION_IDS.RED, characters })[0].occupants).toEqual(characters);
   });
 });
 

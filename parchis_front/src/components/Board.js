@@ -359,15 +359,24 @@ function getTokensForPosition(gameState, position) {
 }
 
 function BoardBox(props) {
+  const tokens = getTokensForPosition(props.gameState, props.position);
   return (
     <td rowSpan="2">
-      {props.position}
-      {getTokensForPosition(props.gameState, props.position).map(
-        (playerToken) => {
-          const tokenClassName = `emoji token player-${playerToken.player}`
-          return <span className={tokenClassName}>{classEmojiMap[playerToken.character]}</span>;
-        }
-      )}
+      <div className="board-box">
+        {props.position}
+        {tokens.length > 0 && (
+          <div className="boxTokenGroup">
+            {tokens.map((playerToken) => {
+              const tokenClassName = `emoji token player-${playerToken.player}`;
+              return (
+                <span className={tokenClassName}>
+                  {classEmojiMap[playerToken.character]}
+                </span>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </td>
   );
 }

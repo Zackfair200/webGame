@@ -113,3 +113,12 @@ img {
 .player-yellow {
   border-color: yellow;
 }
+
+.board-box{
+  display: flex;
+  flex-direction: column;
+}
+
+.boxTokenGroup {
+  flex-grow: 1;
+}

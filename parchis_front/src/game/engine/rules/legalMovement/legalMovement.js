@@ -3,6 +3,7 @@ import { calculateMovementPath } from '../../movement/movement';
 import { assertValidMovementSteps } from '../../movement/validation';
 import { assertCharactersArray } from '../../occupancy/occupancy';
 import { checkPathBlockedByBarrier } from '../barriers/barriers';
+import { evaluateDestination } from '../destinationRules/destinationRules';
 import { POSITION_TYPES, isValidPosition } from '../../state/positions';
 
 export const LEGAL_MOVEMENT_FAILURE_REASONS = Object.freeze({
@@ -93,9 +94,21 @@ export function evaluateMovement({ characterId, steps, characters }) {
     };
   }
 
+  const destination = pathResult.path[pathResult.path.length - 1];
+  const destinationResult = evaluateDestination({
+    movingCharacterId: characterId,
+    destination,
+    characters,
+  });
+
+  if (!destinationResult.legal) {
+    return destinationResult;
+  }
+
   return {
     legal: true,
-    destination: pathResult.path[pathResult.path.length - 1],
+    destination: destinationResult.destination,
     path: pathResult.path,
+    outcome: destinationResult.outcome,
   };
 }

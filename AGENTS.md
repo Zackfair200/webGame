@@ -1,11 +1,17 @@
 # AGENTS.md
 
+## Fuentes de Verdad
+- `README.md` es la fuente de verdad sobre que juego se esta construyendo y sus reglas.
+- `AGENTS.md` es la fuente de verdad sobre como debe trabajar un agente dentro de este repositorio.
+- Si una regla de juego no esta documentada en `README.md`, no la inventes y no asumas automaticamente una variante clasica del Parchis.
+- Ante ambiguedad de reglas, detente y pide aclaracion antes de implementar comportamiento.
+
 ## Repo Shape
 - The root is not an npm workspace and has no root `package.json`.
 - Executable code lives in two independent npm apps: `parchis_front` and `parchis-remix`.
 - Run npm commands from the app directory, never from the repo root expecting workspace behavior.
 - Both apps use `package-lock.json`; use `npm`, not yarn or pnpm.
-- The root `README.md` contains current technical notes followed by the original game-design document.
+- The root `README.md` contains current technical notes and the official game rules.
 
 ## Frontend: `parchis_front`
 - Stack: Create React App, React 18, React Router 6, Axios, Bootstrap, React-Bootstrap, and `react-dice-complete`.
@@ -74,9 +80,68 @@
 - Backend auth specs instantiate `AuthService`/`AuthController` without their required providers, so full `npm test` may fail before unrelated changes.
 - Backend e2e tests import `AppModule`, so they require the hardcoded local PostgreSQL connection.
 
+## Estado Actual del Juego
+- The current game implementation is a frontend prototype in `parchis_front/src/game`.
+- The backend currently has no game module, game endpoints, match persistence, WebSockets, or server-side game validation.
+- Current UI behavior includes a visual board, `Start` modal, team selection, dice rendering, and limited click-based token movement.
+- This prototype is not the final game engine and should not be extended by adding more rules directly into React components.
+
+## Reglas del Juego
+- Antes de implementar, modificar o corregir cualquier comportamiento relacionado con el juego, leer primero las secciones relevantes de `README.md`.
+- `README.md` es la fuente de verdad de las reglas del juego. No implementar reglas basándose únicamente en conocimiento general del Parchís.
+- Antes de implementar una regla, comprobar sus interacciones documentadas con otras reglas relacionadas, especialmente movimientos legales, barreras, seguros, capturas, recompensas, turnos, tres 6 consecutivos, rectas finales, rebote, meta y victoria.
+- Si la implementación solicitada entra en conflicto con `README.md`, detenerse y señalar el conflicto antes de modificar el código.
+- Si `README.md` no define suficientemente un caso necesario para implementar una regla, no asumir el comportamiento: pedir aclaración.
+- Los personajes son entidades con identidad propia, no fichas genéricas. Las reglas futuras pueden depender del personaje concreto.
+- Las habilidades son modificadores o excepciones explícitas a las reglas base. No implementar habilidades hasta que se solicite expresamente.
+- Si una habilidad futura contradice explícitamente una regla base, la habilidad activa prevalece para ese caso concreto.
+
+## Arquitectura Objetivo del Motor
+- Future game rules must be separated from React UI.
+- React components must not decide legal moves, captures, barriers, bounce, rewards, turn progression, or victory.
+- The game engine should expose deterministic state transitions where possible.
+- Prefer pure functions for board, movement, rules, turns, rewards, and win detection.
+- Keep state explicit and serializable.
+- Avoid one giant rules file; split responsibilities into small modules.
+- Las reglas base no deben contener comprobaciones específicas de personajes (por ejemplo, `if character === 'archer'`).
+- Las excepciones y modificaciones propias de los personajes deben implementarse mediante una capa separada de habilidades/modificadores, evitando acoplar el motor base a personajes concretos.
+- El motor debe permitir aplicar una regla base y posteriormente resolver los modificadores o excepciones correspondientes al personaje.
+- A future structure should be similar to:
+```text
+src/game/
+  engine/
+    board/
+    state/
+    movement/
+    rules/
+    turns/
+  components/
+  hooks/
+```
+
+- Exact file names can change when implementation starts, but the separation between engine and UI must remain.
+
+## Tests Esperados Para el Motor
+- When the engine is implemented, base rules must have unit tests.
+- Tests should cover salida con 5, salida bloqueada, movimientos legales e ilegales, barreras, seguros, capturas, capturas encadenadas, +20, llegada a recta final, rebote, +10, llegada a meta, turnos, repeticion por 6, tres 6 consecutivos, ausencia de movimientos legales, and victory condition.
+- Do not add tests in unrelated tasks unless asked.
+
+## Prioridad de Desarrollo del Juego
+- Fase 1: implementar incrementalmente el motor base de Parchís independiente de React, acompañando cada regla o módulo con sus tests unitarios.
+- Fase 2: completar los casos límite y la cobertura integral de tests del motor base.
+- Fase 3: integración del motor con la interfaz React existente.
+- Fase 4: partida local completa para 2, 3 y 4 jugadores.
+- Fase 5: diseño e implementación de los 16 personajes y sus habilidades.
+- Fase 6: mecánicas especiales del juego y posibles casillas/zonas especiales.
+- Fase 7: persistencia de partidas, multijugador, WebSockets, matchmaking o validación server-side solo posteriormente.
+
 ## Editing Rules For Future Agents
 - Preserve current behavior unless the task explicitly asks for functional fixes.
 - Separate pure moves/reorganization from behavior changes.
 - Do not change DTO contracts, auth behavior, PostgreSQL config, `synchronize`, JWT config, or dependencies unless explicitly requested.
 - Do not delete suspected obsolete files only because they look old; first prove they are unused and confirm the cleanup scope.
 - Treat auth, password hashing, DTO/entity alignment, DB config, `ValidationPipe`, and `synchronize` changes as risky.
+- Do not implement game rules directly in React components.
+- Do not implement character abilities unless explicitly requested.
+- Do not invent undocumented rules; ask for clarification.
+- For game engine work, prefer minimal pure functions, explicit state, deterministic outputs, and unit-testable modules.

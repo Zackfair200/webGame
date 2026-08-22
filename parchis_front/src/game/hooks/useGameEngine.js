@@ -2,45 +2,23 @@ import { useReducer } from 'react';
 import * as Engine from '../engine';
 
 const ACTION_TYPES = Object.freeze({
+  START_GAME: 'startGame',
   REGISTER_ROLL: 'registerRoll',
   EXECUTE_ACTION: 'executeAction',
   EXECUTE_REWARD_CHOICE: 'executeRewardChoice',
 });
 
-function createInitialGameFlow() {
-  const players = [
-    { id: 'player-a', name: 'Player A' },
-    { id: 'player-b', name: 'Player B' },
-  ];
-  const created = Engine.createGameSetup({ players });
-  const withSelectionOrder = Engine.setFactionSelectionOrder({
-    setupState: created,
-    playerOrder: ['player-a', 'player-b'],
-  });
-  const withPlayerAFaction = Engine.chooseFaction({
-    setupState: withSelectionOrder,
-    playerId: 'player-a',
-    factionId: Engine.FACTION_IDS.RED,
-  });
-  const withPlayerBFaction = Engine.chooseFaction({
-    setupState: withPlayerAFaction,
-    playerId: 'player-b',
-    factionId: Engine.FACTION_IDS.BLUE,
-  });
-  const completedSetup = Engine.setGameSetupTurnOrder({
-    setupState: withPlayerBFaction,
-    playerOrder: ['player-b', 'player-a'],
-  });
-  const { gameState } = Engine.completeGameSetup({ setupState: completedSetup });
-
-  return Engine.createGameFlow({ gameState });
-}
-
 function createInitialState() {
   return {
-    gameFlow: createInitialGameFlow(),
+    gameFlow: null,
     lastEvents: [],
   };
+}
+
+function assertGameStarted(gameFlow) {
+  if (!gameFlow) {
+    throw new Error('Game Flow has not been started.');
+  }
 }
 
 function applyGameFlowResult(result) {
@@ -54,7 +32,16 @@ function applyGameFlowResult(result) {
 }
 
 function gameEngineReducer(state, action) {
+  if (action.type === ACTION_TYPES.START_GAME) {
+    return {
+      gameFlow: Engine.createGameFlow({ gameState: action.gameState }),
+      lastEvents: [],
+    };
+  }
+
   if (action.type === ACTION_TYPES.REGISTER_ROLL) {
+    assertGameStarted(state.gameFlow);
+
     return applyGameFlowResult(Engine.registerGameRoll({
       gameFlow: state.gameFlow,
       roll: action.value,
@@ -62,6 +49,8 @@ function gameEngineReducer(state, action) {
   }
 
   if (action.type === ACTION_TYPES.EXECUTE_ACTION) {
+    assertGameStarted(state.gameFlow);
+
     return applyGameFlowResult(Engine.executeGameAction({
       gameFlow: state.gameFlow,
       action: action.action,
@@ -70,6 +59,8 @@ function gameEngineReducer(state, action) {
   }
 
   if (action.type === ACTION_TYPES.EXECUTE_REWARD_CHOICE) {
+    assertGameStarted(state.gameFlow);
+
     return applyGameFlowResult(Engine.executeGameRewardChoice({
       gameFlow: state.gameFlow,
       action: action.action,
@@ -82,17 +73,21 @@ function gameEngineReducer(state, action) {
 export function useGameEngine() {
   const [state, dispatch] = useReducer(gameEngineReducer, undefined, createInitialState);
   const { gameFlow, lastEvents } = state;
-  const { gameState, turnState } = gameFlow;
+  const gameState = gameFlow?.gameState || null;
+  const turnState = gameFlow?.turnState || null;
 
   return {
     gameFlow,
     gameState,
     turnState,
-    currentPlayer: Engine.getCurrentPlayer(gameState),
+    currentPlayer: gameState ? Engine.getCurrentPlayer(gameState) : null,
     availableActions: turnState?.availableActions || [],
     pendingReward: turnState?.pendingReward || null,
     availableRewardActions: turnState?.availableRewardActions || [],
     lastEvents,
+    startGame({ gameState: readyGameState }) {
+      dispatch({ type: ACTION_TYPES.START_GAME, gameState: readyGameState });
+    },
     registerRoll(value) {
       dispatch({ type: ACTION_TYPES.REGISTER_ROLL, value });
     },

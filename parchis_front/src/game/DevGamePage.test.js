@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { DevGamePageContent } from './DevGamePage';
+import { DevGamePageContent, DevGamePageGameContent } from './DevGamePage';
 import {
   EXECUTABLE_ACTION_TYPES,
   EXECUTION_EVENT_TYPES,
@@ -9,6 +9,7 @@ import {
   REWARD_TYPES,
   TURN_PHASES,
 } from './engine';
+import { useLocalDevGameSession } from './hooks/useLocalDevGameSession';
 
 function createCharacter({ id, characterId, name, factionId, position }) {
   return { id, characterId, name, factionId, position };
@@ -81,11 +82,70 @@ function createEngine(overrides = {}) {
 
 function renderDevGame(engineOverrides = {}) {
   const engine = createEngine(engineOverrides);
-  render(<DevGamePageContent engine={engine} />);
+  render(<DevGamePageGameContent engine={engine} />);
   return engine;
 }
 
+function DevGameSessionHarness({ shuffle }) {
+  const session = useLocalDevGameSession({ shuffle });
+
+  return <DevGamePageContent session={session} />;
+}
+
+function createShuffle(results) {
+  return jest.fn(() => results.shift());
+}
+
 describe('DevGamePageContent', () => {
+  test('walks through setup and shows the game interface only after Start game', () => {
+    const shuffle = createShuffle([
+      ['player-b', 'player-a', 'player-c'],
+      ['player-c', 'player-b', 'player-a'],
+    ]);
+
+    render(<DevGameSessionHarness shuffle={shuffle} />);
+
+    expect(screen.getByRole('heading', { name: 'Dev Game Setup' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '2 players' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: '4 players' }));
+    expect(within(screen.getByLabelText('Player setup')).getByText('Player D')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '3 players' }));
+    expect(screen.queryByText('Player D')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sort faction selection order' }));
+
+    expect(shuffle).toHaveBeenNthCalledWith(1, ['player-a', 'player-b', 'player-c']);
+    expect(screen.getByRole('button', { name: '3 players' })).toBeDisabled();
+    expect(within(screen.getByLabelText('Faction selection order')).getByText('Player B (player-b)')).toBeInTheDocument();
+    expect(screen.getByText('Player B, choose your faction')).toBeInTheDocument();
+
+    const factionButtons = within(screen.getByLabelText('Faction choices')).getAllByRole('button');
+    expect(factionButtons.map((button) => button.textContent)).toEqual(['green', 'red', 'blue', 'yellow']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'blue' }));
+    expect(screen.getByRole('button', { name: 'blue' })).toBeDisabled();
+    expect(screen.getByText('Player A, choose your faction')).toBeInTheDocument();
+    expect(within(screen.getByLabelText('Faction choices summary')).getByText('blue')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'red' }));
+    expect(screen.getByText('Player C, choose your faction')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'green' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sort turn order' }));
+
+    expect(shuffle).toHaveBeenNthCalledWith(2, ['player-a', 'player-b', 'player-c']);
+    expect(within(screen.getByLabelText('Turn order')).getByText('Player C (player-c)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Setup summary')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Dev Game Engine' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start game' }));
+
+    expect(screen.getByRole('heading', { name: 'Dev Game Engine' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Roll controls')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '5' })).toBeEnabled();
+    expect(screen.queryByText(/select destination/i)).not.toBeInTheDocument();
+  });
+
   test('shows roll controls and calls registerRoll while waiting for roll', () => {
     const engine = renderDevGame();
 

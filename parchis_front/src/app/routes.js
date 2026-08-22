@@ -4,6 +4,7 @@ import LoginPage from '../auth/LoginPage';
 import RegisterPage from '../auth/RegisterPage';
 import DashboardPage from '../dashboard/DashboardPage';
 import GamePage from '../game/GamePage';
+import DevGamePage from '../game/DevGamePage';
 import PrivateRoute from '../auth/PrivateRoute';
 
 function AppRoutes() {
@@ -27,7 +28,7 @@ function AppRoutes() {
           </PrivateRoute>
         }
       />
-      <Route path="/dev_game" element={<GamePage />} />
+      <Route path="/dev_game" element={<DevGamePage />} />
       <Route path="/" element={<LoginPage />} />
     </Routes>
   );

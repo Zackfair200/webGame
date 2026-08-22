@@ -15,6 +15,10 @@ function assertRewardAction(action) {
     throw new Error('reward action is required.');
   }
 
+  if (action.type === REWARD_ACTION_TYPES.LOSE_REWARD) {
+    return;
+  }
+
   if (action.characterId === undefined || action.characterId === null || action.characterId === '') {
     throw new Error('reward action.characterId is required.');
   }
@@ -125,6 +129,34 @@ function executeGoalRewardAction({ state, reward, action }) {
   });
 }
 
+function getRewardLostCharacterId(reward) {
+  if (reward.type === REWARD_TYPES.CAPTURE_REWARD) {
+    return reward.characterId;
+  }
+
+  if (reward.type === REWARD_TYPES.GOAL_REWARD) {
+    return reward.sourceCharacterId;
+  }
+
+  throw new Error(`Unknown reward type: ${reward.type}`);
+}
+
+function executeLoseRewardAction({ state, reward }) {
+  const availability = getAvailableRewardActions({ state, reward });
+
+  if (availability.status !== REWARD_STATUS.LOST) {
+    throw new Error('Cannot lose a reward that is currently available.');
+  }
+
+  return createRewardLostResult({
+    state,
+    rewardType: reward.type,
+    characterId: getRewardLostCharacterId(reward),
+    steps: reward.steps,
+    reason: availability.reason,
+  });
+}
+
 export function executeRewardAction({ state, reward, action }) {
   if (!reward || !reward.type) {
     throw new Error('reward is required.');
@@ -132,6 +164,10 @@ export function executeRewardAction({ state, reward, action }) {
 
   assertRewardSteps(reward);
   assertRewardAction(action);
+
+  if (action.type === REWARD_ACTION_TYPES.LOSE_REWARD) {
+    return executeLoseRewardAction({ state, reward });
+  }
 
   if (reward.type === REWARD_TYPES.CAPTURE_REWARD) {
     return executeCaptureRewardAction({ state, reward, action });

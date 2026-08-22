@@ -15,6 +15,8 @@ export * from './rewards/executeRewardAction';
 export * from './rewards/rewardAvailability';
 export * from './rewards/rewardDetection';
 export * from './rewards/types';
+export * from './consequences/resolveConsequences';
+export * from './consequences/types';
 export * from './state/characters';
 export * from './state/initialState';
 export * from './state/positions';

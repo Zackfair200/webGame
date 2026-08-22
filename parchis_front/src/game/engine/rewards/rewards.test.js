@@ -77,6 +77,12 @@ function goalRewardAction(characterId = 'red.2', movement = undefined) {
   };
 }
 
+function loseRewardAction() {
+  return {
+    type: REWARD_ACTION_TYPES.LOSE_REWARD,
+  };
+}
+
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
     return value;
@@ -429,6 +435,38 @@ describe('reward primitives', () => {
         EXECUTION_EVENT_TYPES.CHARACTER_REACHED_GOAL,
       ]);
     });
+
+    test('loseReward cannot discard an available captureReward', () => {
+      const state = createState([
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      ]);
+
+      expect(() => executeRewardAction({
+        state,
+        reward: captureReward('red.1'),
+        action: loseRewardAction(),
+      })).toThrow('Cannot lose a reward that is currently available.');
+    });
+
+    test('loseReward works for a lost captureReward', () => {
+      const state = createState([
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createHomePosition() }),
+      ]);
+
+      expect(executeRewardAction({
+        state,
+        reward: captureReward('red.1'),
+        action: loseRewardAction(),
+      }).events).toEqual([
+        {
+          type: EXECUTION_EVENT_TYPES.REWARD_LOST,
+          rewardType: REWARD_TYPES.CAPTURE_REWARD,
+          characterId: 'red.1',
+          steps: 20,
+          reason: LEGAL_MOVEMENT_FAILURE_REASONS.CHARACTER_AT_HOME,
+        },
+      ]);
+    });
   });
 
   describe('goalReward availability and execution', () => {
@@ -695,6 +733,20 @@ describe('reward primitives', () => {
           actionType: REWARD_TYPES.GOAL_REWARD,
         },
       ]);
+    });
+
+    test('loseReward cannot discard a choiceRequired goalReward', () => {
+      const state = createState([
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createGoalPosition() }),
+        createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+        createCharacter({ id: 'red.3', factionId: FACTION_IDS.RED, position: createCommonPosition(20) }),
+      ]);
+
+      expect(() => executeRewardAction({
+        state,
+        reward: goalReward('red.1'),
+        action: loseRewardAction(),
+      })).toThrow('Cannot lose a reward that is currently available.');
     });
   });
 

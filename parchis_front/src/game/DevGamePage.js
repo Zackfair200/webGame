@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import {
   EXECUTABLE_ACTION_TYPES,
   EXECUTION_EVENT_TYPES,
+  SETUP_PHASES,
   TURN_PHASES,
 } from './engine';
 import './DevGamePage.css';
-import { useGameEngine } from './hooks/useGameEngine';
+import { LOCAL_DEV_GAME_MODES, useLocalDevGameSession } from './hooks/useLocalDevGameSession';
 
 const ROLL_VALUES = [1, 2, 3, 4, 5, 6];
 
@@ -63,6 +64,20 @@ function getCharacterLabel(gameState, characterId) {
   }
 
   return `${character.name} (${character.id})`;
+}
+
+function getPlayerLabel(players, playerId) {
+  const player = players.find((candidate) => candidate.id === playerId);
+
+  if (!player) {
+    return playerId;
+  }
+
+  return `${player.name} (${player.id})`;
+}
+
+function formatFactionChoice(factionId) {
+  return factionId || 'pending';
 }
 
 function formatEvent(event, gameState) {
@@ -337,7 +352,194 @@ function LastEventsPanel({ events, gameState }) {
   );
 }
 
-export function DevGamePageContent({ engine }) {
+function PlayerCountPanel({ setup }) {
+  return (
+    <section className="dev-game-card" aria-label="Player setup">
+      <h2>Players</h2>
+      <p className="dev-game-muted">Choose the local player count before the first draw.</p>
+      <div className="dev-game-choice-grid dev-game-player-count-grid">
+        {[2, 3, 4].map((count) => (
+          <button
+            key={count}
+            type="button"
+            className={setup.playerCount === count ? 'dev-game-choice-button dev-game-choice-button-active' : 'dev-game-choice-button'}
+            disabled={!setup.canChangePlayerCount}
+            onClick={() => setup.setPlayerCount(count)}
+          >
+            {count} players
+          </button>
+        ))}
+      </div>
+      <ol className="dev-game-compact-list">
+        {setup.players.map((player) => (
+          <li key={player.id}>{player.name}</li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function OrderList({ order, players, emptyText }) {
+  if (!Array.isArray(order) || order.length === 0) {
+    return <p className="dev-game-muted">{emptyText}</p>;
+  }
+
+  return (
+    <ol className="dev-game-order-list">
+      {order.map((playerId) => (
+        <li key={playerId}>{getPlayerLabel(players, playerId)}</li>
+      ))}
+    </ol>
+  );
+}
+
+function FactionSelectionOrderPanel({ setup }) {
+  return (
+    <section className="dev-game-card" aria-label="Faction selection order">
+      <h2>Faction Selection Draw</h2>
+      <p className="dev-game-muted">First draw: only decides who chooses faction first.</p>
+      {setup.setupState.phase === SETUP_PHASES.WAITING_FOR_FACTION_SELECTION_ORDER && (
+        <button type="button" className="dev-game-primary-button" onClick={setup.sortFactionSelectionOrder}>
+          Sort faction selection order
+        </button>
+      )}
+      <OrderList
+        order={setup.setupState.factionSelectionOrder}
+        players={setup.players}
+        emptyText="Faction selection order has not been sorted yet."
+      />
+    </section>
+  );
+}
+
+function FactionChoicesSummary({ setup }) {
+  return (
+    <div className="dev-game-summary-block" aria-label="Faction choices summary">
+      <h3>Faction Choices</h3>
+      <dl className="dev-game-summary-list">
+        {setup.players.map((player) => (
+          <React.Fragment key={player.id}>
+            <dt>{player.name}</dt>
+            <dd>{formatFactionChoice(setup.factionChoiceByPlayerId[player.id])}</dd>
+          </React.Fragment>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function FactionChoicePanel({ setup }) {
+  const isChoosing = setup.setupState.phase === SETUP_PHASES.CHOOSING_FACTIONS;
+
+  return (
+    <section className="dev-game-card" aria-label="Faction choices">
+      <h2>Faction Choice</h2>
+      {isChoosing ? (
+        <>
+          <p className="dev-game-callout">
+            {setup.currentSelectionPlayer.name}, choose your faction
+          </p>
+          <div className="dev-game-choice-grid">
+            {setup.availableFactions.map((faction) => (
+              <button
+                key={faction.id}
+                type="button"
+                className="dev-game-choice-button"
+                disabled={!faction.available}
+                onClick={() => setup.chooseFaction({
+                  playerId: setup.currentSelectionPlayer.id,
+                  factionId: faction.id,
+                })}
+              >
+                {faction.id}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="dev-game-muted">Faction choice starts after the first draw.</p>
+      )}
+      <FactionChoicesSummary setup={setup} />
+    </section>
+  );
+}
+
+function TurnOrderPanel({ setup }) {
+  return (
+    <section className="dev-game-card" aria-label="Turn order">
+      <h2>Turn Order Draw</h2>
+      <p className="dev-game-muted">Second independent draw: decides the real turn order.</p>
+      {setup.setupState.phase === SETUP_PHASES.WAITING_FOR_TURN_ORDER && (
+        <button type="button" className="dev-game-primary-button" onClick={setup.sortTurnOrder}>
+          Sort turn order
+        </button>
+      )}
+      <OrderList
+        order={setup.setupState.turnOrder}
+        players={setup.players}
+        emptyText="Turn order has not been sorted yet."
+      />
+    </section>
+  );
+}
+
+function SetupSummaryPanel({ setup, onStartGame }) {
+  if (setup.setupState.phase !== SETUP_PHASES.COMPLETED) {
+    return null;
+  }
+
+  return (
+    <section className="dev-game-card dev-game-start-card" aria-label="Setup summary">
+      <h2>Setup Summary</h2>
+      <div className="dev-game-summary-grid">
+        <div className="dev-game-summary-block">
+          <h3>Players</h3>
+          <ol className="dev-game-compact-list">
+            {setup.players.map((player) => (
+              <li key={player.id}>{getPlayerLabel(setup.players, player.id)}</li>
+            ))}
+          </ol>
+        </div>
+        <FactionChoicesSummary setup={setup} />
+        <div className="dev-game-summary-block">
+          <h3>Faction Selection Order</h3>
+          <OrderList order={setup.setupState.factionSelectionOrder} players={setup.players} emptyText="none" />
+        </div>
+        <div className="dev-game-summary-block">
+          <h3>Turn Order</h3>
+          <OrderList order={setup.setupState.turnOrder} players={setup.players} emptyText="none" />
+        </div>
+      </div>
+      <button type="button" className="dev-game-primary-button" onClick={onStartGame}>
+        Start game
+      </button>
+    </section>
+  );
+}
+
+function DevGameSetupContent({ setup, onStartGame }) {
+  return (
+    <main className="dev-game-page">
+      <header className="dev-game-hero">
+        <p className="dev-game-kicker">Engine setup lab</p>
+        <h1>Dev Game Setup</h1>
+        <p>
+          Temporary setup flow using the real Game Setup APIs before creating Game Flow.
+        </p>
+      </header>
+
+      <div className="dev-game-setup-grid">
+        <PlayerCountPanel setup={setup} />
+        <FactionSelectionOrderPanel setup={setup} />
+        <FactionChoicePanel setup={setup} />
+        <TurnOrderPanel setup={setup} />
+        <SetupSummaryPanel setup={setup} onStartGame={onStartGame} />
+      </div>
+    </main>
+  );
+}
+
+export function DevGamePageGameContent({ engine }) {
   const canRoll = engine.turnState?.phase === TURN_PHASES.WAITING_FOR_ROLL;
 
   return (
@@ -383,10 +585,18 @@ export function DevGamePageContent({ engine }) {
   );
 }
 
-function DevGamePage() {
-  const engine = useGameEngine();
+export function DevGamePageContent({ session }) {
+  if (session.mode === LOCAL_DEV_GAME_MODES.SETUP) {
+    return <DevGameSetupContent setup={session.setup} onStartGame={session.startGame} />;
+  }
 
-  return <DevGamePageContent engine={engine} />;
+  return <DevGamePageGameContent engine={session.game} />;
+}
+
+function DevGamePage() {
+  const session = useLocalDevGameSession();
+
+  return <DevGamePageContent session={session} />;
 }
 
 export default DevGamePage;

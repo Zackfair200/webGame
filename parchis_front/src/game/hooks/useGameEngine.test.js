@@ -2,9 +2,15 @@ import { act, renderHook } from '@testing-library/react';
 import {
   EXECUTABLE_ACTION_TYPES,
   EXECUTION_EVENT_TYPES,
+  FACTION_IDS,
   GAME_PHASES,
   POSITION_TYPES,
   TURN_PHASES,
+  chooseFaction,
+  completeGameSetup,
+  createGameSetup,
+  setFactionSelectionOrder,
+  setGameSetupTurnOrder,
 } from '../engine';
 import { useGameEngine } from './useGameEngine';
 
@@ -14,9 +20,59 @@ function getCharacter(gameState, characterId) {
     .find((character) => character.id === characterId);
 }
 
+function createReadyGameState({ turnOrder = ['player-b', 'player-a'] } = {}) {
+  const setupState = createGameSetup({
+    players: [
+      { id: 'player-a', name: 'Player A' },
+      { id: 'player-b', name: 'Player B' },
+    ],
+  });
+  const withSelectionOrder = setFactionSelectionOrder({
+    setupState,
+    playerOrder: ['player-a', 'player-b'],
+  });
+  const withPlayerAFaction = chooseFaction({
+    setupState: withSelectionOrder,
+    playerId: 'player-a',
+    factionId: FACTION_IDS.RED,
+  });
+  const withPlayerBFaction = chooseFaction({
+    setupState: withPlayerAFaction,
+    playerId: 'player-b',
+    factionId: FACTION_IDS.BLUE,
+  });
+  const completedSetup = setGameSetupTurnOrder({
+    setupState: withPlayerBFaction,
+    playerOrder: turnOrder,
+  });
+
+  return completeGameSetup({ setupState: completedSetup }).gameState;
+}
+
+function startGame(result) {
+  act(() => {
+    result.current.startGame({ gameState: createReadyGameState() });
+  });
+}
+
 describe('useGameEngine', () => {
-  test('initializes a fixed local game through Game Setup and Game Flow', () => {
+  test('starts without Game Flow', () => {
     const { result } = renderHook(() => useGameEngine());
+
+    expect(result.current.gameFlow).toBe(null);
+    expect(result.current.gameState).toBe(null);
+    expect(result.current.turnState).toBe(null);
+    expect(result.current.currentPlayer).toBe(null);
+    expect(result.current.availableActions).toEqual([]);
+    expect(result.current.pendingReward).toBe(null);
+    expect(result.current.availableRewardActions).toEqual([]);
+    expect(result.current.lastEvents).toEqual([]);
+  });
+
+  test('startGame receives a ready GameState and creates Game Flow', () => {
+    const { result } = renderHook(() => useGameEngine());
+
+    startGame(result);
 
     expect(result.current.gameState.phase).toBe(GAME_PHASES.IN_PROGRESS);
     expect(result.current.gameState.players.map((player) => ({
@@ -38,8 +94,32 @@ describe('useGameEngine', () => {
     expect(result.current.lastEvents).toEqual([]);
   });
 
+  test.each([
+    ['registerRoll', (current) => current.registerRoll(5)],
+    ['executeAction', (current) => current.executeAction({ type: EXECUTABLE_ACTION_TYPES.EXIT_HOME })],
+    ['executeRewardChoice', (current) => current.executeRewardChoice({ type: 'reward' })],
+  ])('%s before startGame fails explicitly without creating Game Flow', (_, command) => {
+    const { result } = renderHook(() => useGameEngine());
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      expect(() => {
+        act(() => {
+          command(result.current);
+        });
+      }).toThrow('Game Flow has not been started.');
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    expect(result.current.gameFlow).toBe(null);
+    expect(result.current.lastEvents).toEqual([]);
+  });
+
   test('registerRoll delegates to the engine and exposes roll 5 home-exit actions', () => {
     const { result } = renderHook(() => useGameEngine());
+
+    startGame(result);
 
     act(() => {
       result.current.registerRoll(5);
@@ -56,6 +136,8 @@ describe('useGameEngine', () => {
   test('roll without legal movement advances according to Game Flow', () => {
     const { result } = renderHook(() => useGameEngine());
 
+    startGame(result);
+
     act(() => {
       result.current.registerRoll(1);
     });
@@ -68,6 +150,8 @@ describe('useGameEngine', () => {
 
   test('roll 6 without legal movement preserves the engine-provided turn state', () => {
     const { result } = renderHook(() => useGameEngine());
+
+    startGame(result);
 
     act(() => {
       result.current.registerRoll(6);
@@ -82,6 +166,8 @@ describe('useGameEngine', () => {
 
   test('executeAction delegates a real available action and updates the engine flow', () => {
     const { result } = renderHook(() => useGameEngine());
+
+    startGame(result);
 
     act(() => {
       result.current.registerRoll(5);
@@ -104,8 +190,41 @@ describe('useGameEngine', () => {
     ]);
   });
 
+  test('stale actions from a previous turn are rejected by the engine', () => {
+    const { result } = renderHook(() => useGameEngine());
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      startGame(result);
+      act(() => {
+        result.current.registerRoll(5);
+      });
+
+      const staleAction = result.current.availableActions[0];
+
+      act(() => {
+        result.current.executeAction(staleAction);
+      });
+
+      expect(result.current.gameState.currentPlayerId).toBe('player-a');
+
+      expect(() => {
+        act(() => {
+          result.current.executeAction(staleAction);
+        });
+      }).toThrow('Turn phase must be waitingForAction.');
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    expect(result.current.gameState.currentPlayerId).toBe('player-a');
+    expect(result.current.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_ROLL);
+  });
+
   test('lastEvents only reflects the latest engine operation', () => {
     const { result } = renderHook(() => useGameEngine());
+
+    startGame(result);
 
     act(() => {
       result.current.registerRoll(5);
@@ -126,9 +245,34 @@ describe('useGameEngine', () => {
     expect(result.current.lastEvents).toEqual([]);
   });
 
+  test('startGame replaces prior Game Flow and resets lastEvents', () => {
+    const { result } = renderHook(() => useGameEngine());
+
+    startGame(result);
+    act(() => {
+      result.current.registerRoll(5);
+    });
+    const action = result.current.availableActions[0];
+    act(() => {
+      result.current.executeAction(action);
+    });
+
+    expect(result.current.lastEvents).toHaveLength(1);
+
+    act(() => {
+      result.current.startGame({ gameState: createReadyGameState({ turnOrder: ['player-a', 'player-b'] }) });
+    });
+
+    expect(result.current.gameState.currentPlayerId).toBe('player-a');
+    expect(result.current.turnState.playerId).toBe('player-a');
+    expect(result.current.lastEvents).toEqual([]);
+  });
+
   test('executeRewardChoice delegates to the engine instead of handling rewards in React', () => {
     const { result } = renderHook(() => useGameEngine());
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    startGame(result);
 
     try {
       expect(() => {

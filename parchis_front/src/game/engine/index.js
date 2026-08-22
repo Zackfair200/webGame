@@ -9,5 +9,8 @@ export * from './rules/legalMovement/legalMovement';
 export * from './rules/movableCharacters/movableCharacters';
 export * from './rules/rollFive/rollFive';
 export * from './rules/rollSix/rollSix';
+export * from './actions/executeAction';
+export * from './actions/types';
+export * from './state/characters';
 export * from './state/initialState';
 export * from './state/positions';

@@ -25,3 +25,7 @@ export * from './turns/turnPenalty';
 export * from './turns/turnState';
 export * from './turns/turnValidation';
 export * from './turns/types';
+export * from './gameFlow/gameFlowActions';
+export * from './gameFlow/playerOrder';
+export * from './gameFlow/types';
+export * from './gameFlow/victory';

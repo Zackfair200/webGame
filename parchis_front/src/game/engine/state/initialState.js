@@ -3,6 +3,8 @@ import { createHomePosition } from './positions';
 
 export const GAME_PHASES = Object.freeze({
   READY: 'ready',
+  IN_PROGRESS: 'inProgress',
+  FINISHED: 'finished',
 });
 
 function assertValidPlayers(players) {
@@ -79,5 +81,6 @@ export function createInitialGameState({ players, turnOrder }) {
     })),
     turnOrder: [...turnOrder],
     currentPlayerId: turnOrder[0],
+    winnerPlayerId: null,
   };
 }

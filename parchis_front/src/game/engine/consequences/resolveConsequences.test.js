@@ -515,4 +515,70 @@ describe('resolveConsequences', () => {
       'remainingRewards must be an array.',
     );
   });
+
+  test('stops before deriving rewards from initial events', () => {
+    const state = createState([
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createGoalPosition() }),
+    ]);
+    const events = [characterReachedGoal('red.1')];
+    const stop = { reason: 'testStop', winnerPlayerId: 'player-red' };
+    const result = resolveConsequences({
+      state,
+      events,
+      shouldStop: () => stop,
+    });
+
+    expect(result).toEqual({
+      status: CONSEQUENCE_RESOLUTION_STATUS.STOPPED,
+      state,
+      events,
+      generatedEvents: [],
+      stop,
+    });
+  });
+
+  test('stops after a reward action before deriving new rewards from it', () => {
+    const state = createState([
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(40) }),
+      createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(30) }),
+    ]);
+    const stop = { reason: 'testStop' };
+    const result = resolveConsequences({
+      state,
+      events: [characterCaptured('red.1', 'blue.0')],
+      remainingRewards: [captureReward('red.2')],
+      shouldStop: ({ generatedEvents }) => (generatedEvents.length > 0 ? stop : null),
+    });
+
+    expect(result.status).toBe(CONSEQUENCE_RESOLUTION_STATUS.STOPPED);
+    expect(result.stop).toEqual(stop);
+    expect(getCharacter(result.state, 'red.1').position).toEqual(createCommonPosition(30));
+    expect(getCharacter(result.state, 'red.2').position).toEqual(createCommonPosition(40));
+    expect(getCharacter(result.state, 'blue.1').position).toEqual(createHomePosition());
+    expect(result.generatedEvents.map((event) => event.type)).toEqual([
+      EXECUTION_EVENT_TYPES.CHARACTER_MOVED,
+      EXECUTION_EVENT_TYPES.CHARACTER_CAPTURED,
+    ]);
+  });
+
+  test('keeps current behavior when shouldStop is not provided', () => {
+    const state = createState([
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+    ]);
+    const result = resolveConsequences({ state, events: [characterCaptured('red.1', 'blue.0')] });
+
+    expect(result.status).toBe(CONSEQUENCE_RESOLUTION_STATUS.RESOLVED);
+    expect(getCharacter(result.state, 'red.1').position).toEqual(createCommonPosition(30));
+    expect(result.generatedEvents).toEqual([
+      {
+        type: EXECUTION_EVENT_TYPES.CHARACTER_MOVED,
+        characterId: 'red.1',
+        from: createCommonPosition(10),
+        to: createCommonPosition(30),
+        steps: 20,
+        actionType: REWARD_TYPES.CAPTURE_REWARD,
+      },
+    ]);
+  });
 });

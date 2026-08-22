@@ -53,6 +53,33 @@ describe('useGameEngine', () => {
     expect(result.current.lastEvents).toEqual([]);
   });
 
+  test('roll without legal movement advances according to Game Flow', () => {
+    const { result } = renderHook(() => useGameEngine());
+
+    act(() => {
+      result.current.registerRoll(1);
+    });
+
+    expect(result.current.gameState.currentPlayerId).toBe('player-a');
+    expect(result.current.turnState.playerId).toBe('player-a');
+    expect(result.current.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_ROLL);
+    expect(result.current.lastEvents).toEqual([]);
+  });
+
+  test('roll 6 without legal movement preserves the engine-provided turn state', () => {
+    const { result } = renderHook(() => useGameEngine());
+
+    act(() => {
+      result.current.registerRoll(6);
+    });
+
+    expect(result.current.gameState.currentPlayerId).toBe('player-b');
+    expect(result.current.turnState.playerId).toBe('player-b');
+    expect(result.current.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_ROLL);
+    expect(result.current.turnState.consecutiveSixes).toBe(1);
+    expect(result.current.lastEvents).toEqual([]);
+  });
+
   test('executeAction delegates a real available action and updates the engine flow', () => {
     const { result } = renderHook(() => useGameEngine());
 

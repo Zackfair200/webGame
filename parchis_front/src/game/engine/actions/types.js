@@ -11,4 +11,5 @@ export const EXECUTION_EVENT_TYPES = Object.freeze({
   CHARACTER_EXITED_HOME: 'characterExitedHome',
   CHARACTER_REMOVED_FROM_START: 'characterRemovedFromStart',
   BARRIER_BROKEN: 'barrierBroken',
+  REWARD_LOST: 'rewardLost',
 });

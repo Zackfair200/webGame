@@ -402,14 +402,12 @@ Para determinar que personaje es penalizado:
 - los personajes que ya hayan llegado a meta estan protegidos y se ignoran;
 - si ninguno de los personajes movidos durante ese turno sigue disponible, nadie vuelve a casa.
 
-Solo deben considerarse personajes que hayan realizado realmente un movimiento durante ese turno.
-Los movimientos realizados mediante recompensas tambien forman parte del historial de movimientos del turno.
+Solo deben considerarse personajes que hayan realizado realmente un movimiento originado por una tirada de dado durante ese turno.
+Los movimientos realizados mediante recompensas tambien forman parte del historial general de movimientos del turno, pero no alteran el orden usado para aplicar la penalizacion por tres 6 consecutivos.
 
-Esto incluye tanto los movimientos de recompensa por captura (+20 base) como los movimientos de recompensa por llegada a meta (+10).
+Esto incluye tanto los movimientos de recompensa por captura (+20 base) como los movimientos de recompensa por llegada a meta (+10): son movimientos reales para capturas, barreras, meta y recompensas encadenadas, pero se ignoran al buscar que personaje debe volver a casa por el tercer 6.
 
-A efectos de la penalizacion por tres 6 consecutivos, un movimiento realizado mediante una recompensa cuenta exactamente igual que un movimiento realizado como consecuencia de una tirada de dado.
-
-Por tanto, al buscar el personaje que debe ser penalizado, siempre se consulta el historial desde el movimiento real mas reciente hacia atras, independientemente del origen de cada movimiento.
+Por tanto, al buscar el personaje que debe ser penalizado, siempre se consulta el historial desde el movimiento originado por dado mas reciente hacia atras.
 
 ## Capturas
 

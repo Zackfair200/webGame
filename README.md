@@ -534,6 +534,8 @@ Cuando un personaje llega exactamente a META:
 - no puede volver a casa;
 - el jugador obtiene una recompensa base de +10 movimientos.
 
+Excepcion: si esa llegada a META hace que los cuatro personajes de la faccion del jugador esten en META, la victoria tiene prioridad absoluta. En ese caso la partida termina inmediatamente y no se genera ni se resuelve la recompensa de +10 correspondiente a esa llegada ganadora.
+
 El jugador elige que otro personaje de su faccion recibe los +10.
 
 El personaje elegido debe estar fuera de casa, seguir activo y poder realizar legalmente el movimiento de +10.
@@ -550,6 +552,10 @@ Cuando los cuatro personajes de una faccion han llegado a META:
 
 - ese jugador gana inmediatamente;
 - la partida termina.
+
+La victoria se aplica inmediatamente aunque ocurra durante un movimiento de recompensa, ya sea +20 o +10. En cuanto existe un ganador, se detiene la resolucion de consecuencias: no se procesan recompensas pendientes, no se solicitan nuevas elecciones de recompensa, no se realizan movimientos posteriores y no se genera `rewardLost` por recompensas descartadas debido a la victoria.
+
+Los eventos ya producidos antes de detectar la victoria se conservan.
 
 No existe actualmente ninguna condicion adicional de victoria.
 

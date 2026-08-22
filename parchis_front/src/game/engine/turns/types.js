@@ -14,6 +14,7 @@ export const TURN_END_REASONS = Object.freeze({
   COMPLETED: 'completed',
   NO_LEGAL_ACTION: 'noLegalAction',
   THIRD_SIX_PENALTY: 'thirdSixPenalty',
+  STOPPED: 'stopped',
 });
 
 export const TURN_EVENT_TYPES = Object.freeze({

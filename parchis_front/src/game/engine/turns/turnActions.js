@@ -116,8 +116,32 @@ function advanceAfterConsequences({ turnState, events }) {
   });
 }
 
-function resolveTurnConsequences({ state, turnState, events, remainingRewards = [] }) {
-  const resolution = resolveConsequences({ state, events, remainingRewards });
+function resolveTurnConsequences({
+  state,
+  turnState,
+  events,
+  remainingRewards = [],
+  shouldStopConsequences = null,
+}) {
+  const resolution = resolveConsequences({
+    state,
+    events,
+    remainingRewards,
+    shouldStop: shouldStopConsequences,
+  });
+
+  if (resolution.status === CONSEQUENCE_RESOLUTION_STATUS.STOPPED) {
+    return {
+      state: resolution.state,
+      turnState: finishTurn({
+        turnState,
+        reason: TURN_END_REASONS.STOPPED,
+        events: resolution.events,
+      }),
+      events: resolution.events.map(cloneValue),
+      stop: cloneValue(resolution.stop),
+    };
+  }
 
   if (resolution.status === CONSEQUENCE_RESOLUTION_STATUS.CHOICE_REQUIRED) {
     return {
@@ -235,7 +259,7 @@ export function registerTurnRoll({ state, turnState, roll }) {
   };
 }
 
-export function executeTurnAction({ state, turnState, action, choice }) {
+export function executeTurnAction({ state, turnState, action, choice, shouldStopConsequences = null }) {
   assertPhase(turnState, TURN_PHASES.WAITING_FOR_ACTION);
 
   if (!findAvailableAction(turnState.availableActions, action)) {
@@ -255,10 +279,11 @@ export function executeTurnAction({ state, turnState, action, choice }) {
     state: actionResult.state,
     turnState: nextTurnState,
     events: actionResult.events,
+    shouldStopConsequences,
   });
 }
 
-export function executeTurnRewardAction({ state, turnState, action }) {
+export function executeTurnRewardAction({ state, turnState, action, shouldStopConsequences = null }) {
   assertPhase(turnState, TURN_PHASES.WAITING_FOR_REWARD_CHOICE);
 
   if (!findAvailableAction(turnState.availableRewardActions, action)) {
@@ -276,5 +301,6 @@ export function executeTurnRewardAction({ state, turnState, action }) {
     turnState,
     events: rewardResult.events,
     remainingRewards: turnState.remainingRewards,
+    shouldStopConsequences,
   });
 }

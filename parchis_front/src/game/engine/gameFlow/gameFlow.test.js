@@ -4,6 +4,7 @@ import {
   FACTION_IDS,
   GAME_PHASES,
   POSITION_TYPES,
+  REWARD_TYPES,
   TURN_PHASES,
   createCommonPosition,
   createFinalLanePosition,
@@ -275,7 +276,7 @@ describe('game flow', () => {
           positions: [
             createFinalLanePosition(FACTION_IDS.RED, 7),
             createCommonPosition(10),
-            createCommonPosition(20),
+            createCommonPosition(54),
           ],
         }),
         createPlayer({ id: 'player-2', factionId: FACTION_IDS.BLUE }),
@@ -309,7 +310,7 @@ describe('game flow', () => {
           positions: [
             createFinalLanePosition(FACTION_IDS.RED, 2),
             createCommonPosition(10),
-            createCommonPosition(20),
+            createCommonPosition(54),
           ],
         }),
         createPlayer({ id: 'player-2', factionId: FACTION_IDS.BLUE }),
@@ -357,6 +358,51 @@ describe('game flow', () => {
     expect(result.gameState.currentPlayerId).toBe('player-2');
   });
 
+  test('blue normal capture of red automatically applies exact +20 capture reward', () => {
+    const gameState = createReadyGame({
+      players: [
+        createPlayer({ id: 'blue-player', factionId: FACTION_IDS.BLUE, positions: [createCommonPosition(58)] }),
+        createPlayer({ id: 'red-player', factionId: FACTION_IDS.RED, positions: [createCommonPosition(61)] }),
+      ],
+      turnOrder: ['blue-player', 'red-player'],
+      currentPlayerId: 'blue-player',
+    });
+    const flow = createGameFlow({ gameState });
+    const rolled = registerGameRoll({ gameFlow: flow, roll: 3 });
+    const result = executeGameAction({
+      gameFlow: rolled,
+      action: getActionForCharacter(rolled, 'blue.1'),
+    });
+
+    expect(getCharacter(result.gameState, 'red.1').position).toEqual(createHomePosition());
+    expect(getCharacter(result.gameState, 'blue.1').position).toEqual(createCommonPosition(13));
+    expect(result.events).toEqual([
+      {
+        type: EXECUTION_EVENT_TYPES.CHARACTER_MOVED,
+        characterId: 'blue.1',
+        from: createCommonPosition(58),
+        to: createCommonPosition(61),
+        steps: 3,
+        actionType: EXECUTABLE_ACTION_TYPES.NORMAL_MOVEMENT,
+      },
+      {
+        type: EXECUTION_EVENT_TYPES.CHARACTER_CAPTURED,
+        characterId: 'blue.1',
+        capturedCharacterId: 'red.1',
+      },
+      {
+        type: EXECUTION_EVENT_TYPES.CHARACTER_MOVED,
+        characterId: 'blue.1',
+        from: createCommonPosition(61),
+        to: createCommonPosition(13),
+        steps: 20,
+        actionType: REWARD_TYPES.CAPTURE_REWARD,
+      },
+    ]);
+    expect(result.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_ROLL);
+    expect(result.gameState.currentPlayerId).toBe('red-player');
+  });
+
   test('winning by normal movement finishes the game without generating the winning +10', () => {
     const gameState = createReadyGame({
       players: [
@@ -393,13 +439,13 @@ describe('game flow', () => {
           id: 'player-1',
           factionId: FACTION_IDS.RED,
           positions: [
-            createCommonPosition(20),
+            createCommonPosition(54),
             createGoalPosition(),
             createGoalPosition(),
             createGoalPosition(),
           ],
         }),
-        createPlayer({ id: 'player-2', factionId: FACTION_IDS.BLUE, positions: [createCommonPosition(26)] }),
+        createPlayer({ id: 'player-2', factionId: FACTION_IDS.BLUE, positions: [createCommonPosition(60)] }),
       ],
     });
     const flow = createGameFlow({ gameState });
@@ -427,7 +473,7 @@ describe('game flow', () => {
             createFinalLanePosition(FACTION_IDS.RED, 7),
             createGoalPosition(),
             createGoalPosition(),
-            createCommonPosition(36),
+            createCommonPosition(2),
           ],
         }),
         createPlayer({ id: 'player-2', factionId: FACTION_IDS.BLUE }),

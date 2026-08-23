@@ -248,33 +248,17 @@ El movimiento sigue el orden `1 -> 2 -> 3 -> ... -> 68 -> 1`.
 
 Las salidas son:
 
-- Amarillo: 5
-- Azul: 22
-- Rojo: 39
-- Verde: 56
+- Amarillo: 39
+- Verde: 22
+- Azul: 56
+- Rojo: 5
 
 Cada faccion completa su recorrido correspondiente antes de entrar en su recta final.
 
 Recorrido amarillo:
 
 ```text
-5 -> 6 -> ... -> 68 -> 1 -> ... -> 4 -> recta final amarilla
-```
-
-Ultima casilla comun: 4.
-
-Recorrido azul:
-
-```text
-22 -> 23 -> ... -> 68 -> 1 -> ... -> 21 -> recta final azul
-```
-
-Ultima casilla comun: 21.
-
-Recorrido rojo:
-
-```text
-39 -> 40 -> ... -> 68 -> 1 -> ... -> 38 -> recta final roja
+39 -> 40 -> ... -> 68 -> 1 -> ... -> 38 -> recta final amarilla
 ```
 
 Ultima casilla comun: 38.
@@ -282,10 +266,26 @@ Ultima casilla comun: 38.
 Recorrido verde:
 
 ```text
-56 -> 57 -> ... -> 68 -> 1 -> ... -> 55 -> recta final verde
+22 -> 23 -> ... -> 68 -> 1 -> ... -> 21 -> recta final verde
+```
+
+Ultima casilla comun: 21.
+
+Recorrido azul:
+
+```text
+56 -> 57 -> ... -> 68 -> 1 -> ... -> 55 -> recta final azul
 ```
 
 Ultima casilla comun: 55.
+
+Recorrido rojo:
+
+```text
+5 -> 6 -> ... -> 68 -> 1 -> ... -> 4 -> recta final roja
+```
+
+Ultima casilla comun: 4.
 
 ## Casillas Seguras
 

@@ -6,6 +6,8 @@ import {
   TURN_PHASES,
 } from './engine';
 import './DevGamePage.css';
+import { GameBoard } from './board/GameBoard';
+import { GameDice } from './dice/GameDice';
 import { LOCAL_DEV_GAME_MODES, useLocalDevGameSession } from './hooks/useLocalDevGameSession';
 
 const ROLL_VALUES = [1, 2, 3, 4, 5, 6];
@@ -86,7 +88,11 @@ function formatEvent(event, gameState) {
   }
 
   if (event.type === EXECUTION_EVENT_TYPES.CHARACTER_MOVED) {
-    return `${getCharacterLabel(gameState, event.characterId)} moved ${formatPosition(event.from)} -> ${formatPosition(event.to)}`;
+    const movementDetails = [event.actionType, event.steps ? `${event.steps} steps` : null]
+      .filter(Boolean)
+      .join(', ');
+
+    return `${getCharacterLabel(gameState, event.characterId)} moved ${formatPosition(event.from)} -> ${formatPosition(event.to)}${movementDetails ? ` (${movementDetails})` : ''}`;
   }
 
   if (event.type === EXECUTION_EVENT_TYPES.CHARACTER_CAPTURED) {
@@ -125,6 +131,18 @@ function ActionDetails({ action }) {
       <dd>{action.type}</dd>
       <dt>Character</dt>
       <dd>{action.characterId}</dd>
+      {action.steps && (
+        <>
+          <dt>Steps</dt>
+          <dd>{action.steps}</dd>
+        </>
+      )}
+      {action.rewardSteps && (
+        <>
+          <dt>Reward budget</dt>
+          <dd>{action.rewardSteps}</dd>
+        </>
+      )}
       {action.destination && (
         <>
           <dt>Destination</dt>
@@ -208,6 +226,37 @@ function GameStatusPanel({ gameState, turnState, currentPlayer, availableActions
         <dt>Reward actions</dt>
         <dd>{availableRewardActions.length}</dd>
       </dl>
+    </section>
+  );
+}
+
+function CurrentTurnIndicator({ gameState, turnState, currentPlayer }) {
+  const factionId = currentPlayer?.factionId || turnState?.factionId || 'unknown';
+  const playerId = gameState?.currentPlayerId || currentPlayer?.id || 'unknown';
+  const playerName = currentPlayer?.name || playerId;
+
+  return (
+    <section
+      className={`dev-game-turn-indicator dev-game-turn-indicator--${factionId}`}
+      aria-label="Current turn"
+      data-current-player-id={playerId}
+      data-current-faction={factionId}
+    >
+      <p className="dev-game-turn-indicator__kicker">Turn</p>
+      <div className="dev-game-turn-indicator__player">
+        <strong>{playerName}</strong>
+        <span>{playerId}</span>
+      </div>
+      <div className="dev-game-turn-indicator__details">
+        <div>
+          <span>Faction</span>
+          <strong>{factionId}</strong>
+        </div>
+        <div>
+          <span>Phase</span>
+          <strong>{formatValue(turnState?.phase)}</strong>
+        </div>
+      </div>
     </section>
   );
 }
@@ -540,47 +589,83 @@ function DevGameSetupContent({ setup, onStartGame }) {
 }
 
 export function DevGamePageGameContent({ engine }) {
+  const [isDiceRolling, setIsDiceRolling] = useState(false);
   const canRoll = engine.turnState?.phase === TURN_PHASES.WAITING_FOR_ROLL;
+  const rollControlsDisabled = !canRoll || isDiceRolling;
 
   return (
-    <main className="dev-game-page">
-      <header className="dev-game-hero">
-        <p className="dev-game-kicker">Engine integration lab</p>
-        <h1>Dev Game Engine</h1>
-        <p>
-          Temporary controls for observing a real engine-driven match. No board clicks, no manual destinations.
-        </p>
-      </header>
+    <main className="dev-game-page dev-game-page--game">
+      <section className="dev-game-stage" aria-label="Game screen">
+        <div className="dev-game-stage__side">
+          <header className="dev-game-hero dev-game-hero--game">
+            <p className="dev-game-kicker">Engine integration lab</p>
+            <h1>Dev Game Engine</h1>
+            <p>
+              Temporary controls for observing a real engine-driven match. No board clicks, no manual destinations.
+            </p>
+          </header>
+          <CurrentTurnIndicator
+            gameState={engine.gameState}
+            turnState={engine.turnState}
+            currentPlayer={engine.currentPlayer}
+          />
+          <GameDice
+            disabled={rollControlsDisabled}
+            value={engine.turnState?.currentRoll}
+            onRoll={engine.registerRoll}
+            onRollingChange={setIsDiceRolling}
+          />
+        </div>
 
-      <div className="dev-game-layout">
-        <div className="dev-game-column">
-          <GameStatusPanel
+        <div className="dev-game-board-focus">
+          <GameBoard
             gameState={engine.gameState}
             turnState={engine.turnState}
             currentPlayer={engine.currentPlayer}
             availableActions={engine.availableActions}
-            pendingReward={engine.pendingReward}
             availableRewardActions={engine.availableRewardActions}
-          />
-          <RollControls disabled={!canRoll} onRoll={engine.registerRoll} />
-          <LastEventsPanel events={engine.lastEvents} gameState={engine.gameState} />
-        </div>
-
-        <div className="dev-game-column dev-game-column-wide">
-          <AvailableActionsPanel
-            actions={engine.availableActions}
-            gameState={engine.gameState}
             onExecuteAction={engine.executeAction}
-          />
-          <RewardActionsPanel
-            pendingReward={engine.pendingReward}
-            actions={engine.availableRewardActions}
-            gameState={engine.gameState}
             onExecuteRewardChoice={engine.executeRewardChoice}
           />
-          <PositionsPanel gameState={engine.gameState} />
         </div>
-      </div>
+      </section>
+
+      <section className="dev-game-debug-section" aria-label="Development tools">
+        <header className="dev-game-debug-header">
+          <p className="dev-game-kicker">Development controls</p>
+          <h2>Debug Panels</h2>
+        </header>
+
+        <div className="dev-game-layout">
+          <div className="dev-game-column">
+            <RollControls disabled={rollControlsDisabled} onRoll={engine.registerRoll} />
+            <GameStatusPanel
+              gameState={engine.gameState}
+              turnState={engine.turnState}
+              currentPlayer={engine.currentPlayer}
+              availableActions={engine.availableActions}
+              pendingReward={engine.pendingReward}
+              availableRewardActions={engine.availableRewardActions}
+            />
+            <LastEventsPanel events={engine.lastEvents} gameState={engine.gameState} />
+          </div>
+
+          <div className="dev-game-column dev-game-column-wide">
+            <AvailableActionsPanel
+              actions={engine.availableActions}
+              gameState={engine.gameState}
+              onExecuteAction={engine.executeAction}
+            />
+            <RewardActionsPanel
+              pendingReward={engine.pendingReward}
+              actions={engine.availableRewardActions}
+              gameState={engine.gameState}
+              onExecuteRewardChoice={engine.executeRewardChoice}
+            />
+            <PositionsPanel gameState={engine.gameState} />
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

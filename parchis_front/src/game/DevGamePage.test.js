@@ -1,6 +1,7 @@
 import React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { DevGamePageContent, DevGamePageGameContent } from './DevGamePage';
+import { DICE_ANIMATION_DURATION_MS } from './dice/GameDice';
 import {
   EXECUTABLE_ACTION_TYPES,
   EXECUTION_EVENT_TYPES,
@@ -25,7 +26,7 @@ function createGameState(overrides = {}) {
         factionId: 'red',
         characters: [
           createCharacter({ id: 'red.fireMage', characterId: 'fireMage', name: 'Mago de fuego', factionId: 'red', position: { type: 'home' } }),
-          createCharacter({ id: 'red.warrior', characterId: 'warrior', name: 'Guerrero', factionId: 'red', position: { type: 'common', square: 39 } }),
+          createCharacter({ id: 'red.warrior', characterId: 'warrior', name: 'Guerrero', factionId: 'red', position: { type: 'common', square: 5 } }),
         ],
       },
       {
@@ -141,9 +142,15 @@ describe('DevGamePageContent', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start game' }));
 
     expect(screen.getByRole('heading', { name: 'Dev Game Engine' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Visual game board')).toBeInTheDocument();
     expect(screen.getByLabelText('Roll controls')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '5' })).toBeEnabled();
     expect(screen.queryByText(/select destination/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '5' }));
+    fireEvent.click(screen.getByRole('button', { name: /Druida.*available/ }));
+
+    expect(within(screen.getByLabelText('Character positions')).getByText('common 22')).toBeInTheDocument();
   });
 
   test('shows roll controls and calls registerRoll while waiting for roll', () => {
@@ -158,28 +165,116 @@ describe('DevGamePageContent', () => {
     expect(engine.registerRoll).toHaveBeenCalledWith(5);
   });
 
+  test('renders a prominent current-turn indicator from engine state', () => {
+    renderDevGame();
+
+    const indicator = screen.getByLabelText('Current turn');
+
+    expect(indicator).toHaveAttribute('data-current-player-id', 'player-b');
+    expect(indicator).toHaveAttribute('data-current-faction', 'blue');
+    expect(indicator).toHaveClass('dev-game-turn-indicator--blue');
+    expect(within(indicator).getByText('Player B')).toBeInTheDocument();
+    expect(within(indicator).getByText('player-b')).toBeInTheDocument();
+    expect(within(indicator).getByText('blue')).toBeInTheDocument();
+    expect(within(indicator).getByText(TURN_PHASES.WAITING_FOR_ROLL)).toBeInTheDocument();
+  });
+
+  test('current-turn indicator follows changed engine current player without local turn state', () => {
+    const initialEngine = createEngine();
+    const nextGameState = createGameState({ currentPlayerId: 'player-a' });
+    const nextEngine = createEngine({
+      gameState: nextGameState,
+      turnState: createTurnState({
+        playerId: 'player-a',
+        factionId: 'red',
+        phase: TURN_PHASES.WAITING_FOR_ACTION,
+      }),
+    });
+    const { rerender } = render(<DevGamePageGameContent engine={initialEngine} />);
+
+    expect(screen.getByLabelText('Current turn')).toHaveAttribute('data-current-player-id', 'player-b');
+
+    rerender(<DevGamePageGameContent engine={nextEngine} />);
+
+    const indicator = screen.getByLabelText('Current turn');
+
+    expect(indicator).toHaveAttribute('data-current-player-id', 'player-a');
+    expect(indicator).toHaveAttribute('data-current-faction', 'red');
+    expect(indicator).toHaveClass('dev-game-turn-indicator--red');
+    expect(within(indicator).getByText('Player A')).toBeInTheDocument();
+    expect(within(indicator).getByText('red')).toBeInTheDocument();
+    expect(within(indicator).getByText(TURN_PHASES.WAITING_FOR_ACTION)).toBeInTheDocument();
+  });
+
+  test('keeps the board in the primary game screen and debug tools in the development section', () => {
+    renderDevGame();
+
+    const gameScreen = screen.getByLabelText('Game screen');
+    const developmentTools = screen.getByLabelText('Development tools');
+
+    expect(within(gameScreen).getByLabelText('Current turn')).toBeInTheDocument();
+    expect(within(gameScreen).getByLabelText('Gameplay dice')).toBeInTheDocument();
+    expect(within(gameScreen).getByRole('button', { name: 'Roll dice' })).toBeEnabled();
+    expect(within(gameScreen).getByLabelText('Visual game board')).toBeInTheDocument();
+    expect(within(gameScreen).getByLabelText('Parchis board')).toBeInTheDocument();
+    expect(within(developmentTools).getByLabelText('Roll controls')).toBeInTheDocument();
+    expect(within(developmentTools).getByRole('button', { name: '5' })).toBeEnabled();
+    expect(within(developmentTools).getByLabelText('Game status')).toBeInTheDocument();
+    expect(within(developmentTools).getByLabelText('Available actions')).toBeInTheDocument();
+    expect(within(developmentTools).getByLabelText('Reward actions')).toBeInTheDocument();
+    expect(within(developmentTools).getByLabelText('Character positions')).toBeInTheDocument();
+    expect(within(developmentTools).getByLabelText('Last events')).toBeInTheDocument();
+    expect(document.querySelector('[data-start-square="56"]')).toBeTruthy();
+  });
+
   test('disables roll controls when the engine is waiting for an action', () => {
     renderDevGame({
       turnState: createTurnState({ phase: TURN_PHASES.WAITING_FOR_ACTION }),
     });
 
+    expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDisabled();
     [1, 2, 3, 4, 5, 6].forEach((value) => {
       expect(screen.getByRole('button', { name: String(value) })).toBeDisabled();
     });
+  });
+
+  test('real dice submits one generated roll and temporarily disables deterministic controls', () => {
+    jest.useFakeTimers();
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.66);
+    const engine = renderDevGame();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Roll dice' }));
+
+    expect(engine.registerRoll).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Rolling dice' })).toBeDisabled();
+    [1, 2, 3, 4, 5, 6].forEach((value) => {
+      expect(screen.getByRole('button', { name: String(value) })).toBeDisabled();
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(DICE_ANIMATION_DURATION_MS);
+    });
+
+    expect(engine.registerRoll).toHaveBeenCalledTimes(1);
+    expect(engine.registerRoll).toHaveBeenCalledWith(4);
+    expect(screen.getByText('Rolled 4')).toBeInTheDocument();
+
+    randomSpy.mockRestore();
+    jest.useRealTimers();
   });
 
   test('renders and executes an exitHome action without manual destination selection', () => {
     const action = {
       type: EXECUTABLE_ACTION_TYPES.EXIT_HOME,
       characterId: 'blue.iceMage',
-      destination: { type: 'common', square: 22 },
+      destination: { type: 'common', square: 56 },
       occupantRemoval: { required: false, removableCharacterIds: [], isCapture: false, grantsCaptureReward: false },
     };
     const turnState = createTurnState({ phase: TURN_PHASES.WAITING_FOR_ACTION, availableActions: [action] });
     const engine = renderDevGame({ turnState, availableActions: [action] });
 
     expect(screen.getByText('Mago de hielo (blue.iceMage)')).toBeInTheDocument();
-    expect(screen.getByText('common 22')).toBeInTheDocument();
+    expect(screen.getByText('common 56')).toBeInTheDocument();
     expect(screen.queryByText(/select destination/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Execute' }));
@@ -191,7 +286,7 @@ describe('DevGamePageContent', () => {
     const action = {
       type: EXECUTABLE_ACTION_TYPES.EXIT_HOME,
       characterId: 'blue.iceMage',
-      destination: { type: 'common', square: 22 },
+      destination: { type: 'common', square: 56 },
       occupantRemoval: {
         required: true,
         removableCharacterIds: ['red.warrior', 'blue.hunter'],
@@ -235,7 +330,7 @@ describe('DevGamePageContent', () => {
       type: EXECUTABLE_ACTION_TYPES.BREAK_BARRIER,
       characterId: 'blue.hunter',
       barrier: {
-        position: { type: 'common', square: 22 },
+        position: { type: 'common', square: 56 },
         occupantCharacterIds: ['blue.iceMage', 'blue.hunter'],
       },
       movement: {
@@ -248,7 +343,7 @@ describe('DevGamePageContent', () => {
     const turnState = createTurnState({ phase: TURN_PHASES.WAITING_FOR_ACTION, availableActions: [action] });
     const engine = renderDevGame({ turnState, availableActions: [action] });
 
-    expect(screen.getByText('common 22 | blue.iceMage, blue.hunter')).toBeInTheDocument();
+    expect(screen.getByText('common 56 | blue.iceMage, blue.hunter')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Execute' }));
 
@@ -291,7 +386,7 @@ describe('DevGamePageContent', () => {
 
     expect(within(table).getByText('Mago de hielo')).toBeInTheDocument();
     expect(within(table).getAllByText('HOME').length).toBeGreaterThan(0);
-    expect(within(table).getByText('common 39')).toBeInTheDocument();
+    expect(within(table).getByText('common 5')).toBeInTheDocument();
     expect(within(table).getByText('finalLane blue 3')).toBeInTheDocument();
     expect(within(table).getByText('GOAL')).toBeInTheDocument();
   });
@@ -303,20 +398,51 @@ describe('DevGamePageContent', () => {
           type: EXECUTION_EVENT_TYPES.CHARACTER_EXITED_HOME,
           characterId: 'blue.iceMage',
           from: { type: 'home' },
-          to: { type: 'common', square: 22 },
+          to: { type: 'common', square: 56 },
         },
         {
           type: EXECUTION_EVENT_TYPES.BARRIER_BROKEN,
           characterId: 'blue.hunter',
-          position: { type: 'common', square: 22 },
+          position: { type: 'common', square: 56 },
           occupantCharacterIds: ['blue.iceMage', 'blue.hunter'],
         },
       ],
     });
 
-    expect(screen.getByText(/exited HOME to common 22/)).toBeInTheDocument();
-    expect(screen.getByText(/broke barrier at common 22/)).toBeInTheDocument();
+    expect(screen.getByText(/exited HOME to common 56/)).toBeInTheDocument();
+    expect(screen.getByText(/broke barrier at common 56/)).toBeInTheDocument();
     expect(engine.gameState.players[1].characters[0].position).toEqual({ type: 'home' });
+  });
+
+  test('shows automatic capture reward movement in last events without reward choices', () => {
+    renderDevGame({
+      lastEvents: [
+        {
+          type: EXECUTION_EVENT_TYPES.CHARACTER_MOVED,
+          characterId: 'blue.hunter',
+          from: { type: 'common', square: 58 },
+          to: { type: 'common', square: 61 },
+          steps: 3,
+          actionType: EXECUTABLE_ACTION_TYPES.NORMAL_MOVEMENT,
+        },
+        {
+          type: EXECUTION_EVENT_TYPES.CHARACTER_CAPTURED,
+          characterId: 'blue.hunter',
+          capturedCharacterId: 'red.warrior',
+        },
+        {
+          type: EXECUTION_EVENT_TYPES.CHARACTER_MOVED,
+          characterId: 'blue.hunter',
+          from: { type: 'common', square: 61 },
+          to: { type: 'common', square: 13 },
+          steps: 20,
+          actionType: REWARD_TYPES.CAPTURE_REWARD,
+        },
+      ],
+    });
+
+    expect(screen.getByText(/Cazador .* moved common 61 -> common 13 \(captureReward, 20 steps\)/)).toBeInTheDocument();
+    expect(within(screen.getByLabelText('Reward actions')).getByText('No reward choices available.')).toBeInTheDocument();
   });
 
   test('reflects current player and repeat-roll state from GameFlow', () => {

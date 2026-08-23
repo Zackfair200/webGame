@@ -263,7 +263,7 @@ describe('turn flow', () => {
       action: rollResult.turnState.availableActions[0],
     });
 
-    expect(getCharacter(actionResult.state, 'red.1').position).toEqual(createCommonPosition(19));
+    expect(getCharacter(actionResult.state, 'red.1').position).toEqual(createFinalLanePosition(FACTION_IDS.RED, 1));
     expect(getCharacter(actionResult.state, 'blue.1').position).toEqual(createHomePosition());
     expect(getCharacter(actionResult.state, 'blue.2').position).toEqual(createHomePosition());
     expect(actionResult.events.filter((event) => event.type === 'characterCaptured')).toHaveLength(2);
@@ -272,9 +272,9 @@ describe('turn flow', () => {
 
   test('resolves a 6 capture with automatic +20 to GOAL and +10 before waiting for the next roll', () => {
     const state = createState([
-      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(20) }),
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(54) }),
       createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
-      createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(26) }),
+      createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(60) }),
     ]);
     const rollResult = registerTurnRoll({ state, turnState: createRedTurn(), roll: 6 });
     const actionResult = executeTurnAction({

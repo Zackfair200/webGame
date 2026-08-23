@@ -1,0 +1,307 @@
+.game-dice-panel {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  border-radius: 26px;
+  padding: clamp(18px, 2.6vw, 28px);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.16), transparent 24%),
+    radial-gradient(circle at 20% 88%, rgba(14, 165, 233, 0.2), transparent 32%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.74));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+.game-dice-panel::after {
+  content: '';
+  position: absolute;
+  right: 18%;
+  bottom: 22px;
+  left: 18%;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.52);
+  filter: blur(13px);
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.game-dice-panel--rolling {
+  animation: game-dice-panel-glow 820ms ease-in-out both;
+}
+
+.game-dice-panel--settling {
+  animation: game-dice-panel-settle 180ms ease-out both;
+}
+
+.game-dice {
+  --game-dice-size: clamp(96px, 9vw, 142px);
+  position: relative;
+  z-index: 1;
+  width: var(--game-dice-size);
+  height: var(--game-dice-size);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.36));
+  transition: filter 180ms ease, opacity 180ms ease;
+}
+
+.game-dice:hover:not(:disabled) {
+  filter:
+    brightness(1.08)
+    drop-shadow(0 22px 28px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 18px rgba(125, 211, 252, 0.24));
+}
+
+.game-dice:active:not(:disabled) {
+  filter:
+    brightness(1.16)
+    drop-shadow(0 16px 22px rgba(0, 0, 0, 0.38))
+    drop-shadow(0 0 20px rgba(167, 243, 208, 0.3));
+}
+
+.game-dice:focus-visible {
+  outline: 3px solid #7dd3fc;
+  outline-offset: 7px;
+}
+
+.game-dice:disabled {
+  cursor: not-allowed;
+}
+
+.game-dice--disabled:not(.game-dice--rolling) {
+  opacity: 0.6;
+  filter: grayscale(0.18) drop-shadow(0 12px 18px rgba(0, 0, 0, 0.3));
+}
+
+.game-dice--rolling {
+  filter:
+    brightness(1.12)
+    drop-shadow(0 20px 28px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 22px rgba(125, 211, 252, 0.28));
+}
+
+.game-dice--settling {
+  filter:
+    brightness(1.2)
+    drop-shadow(0 20px 28px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 28px rgba(167, 243, 208, 0.36));
+}
+
+.game-dice__scene,
+.game-dice__face-stage {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.game-dice__face-stage {
+  animation: game-dice-face-change 110ms ease-out both;
+}
+
+.game-dice--settling .game-dice__face-stage {
+  animation: game-dice-face-settle 180ms ease-out both;
+}
+
+.game-dice__face {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  border-radius: 22%;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.14) 18%, transparent 19%),
+    linear-gradient(145deg, #ffffff 0%, #f8fafc 42%, #d9e2ef 100%);
+  box-shadow:
+    inset 10px 10px 20px rgba(255, 255, 255, 0.88),
+    inset -12px -16px 26px rgba(100, 116, 139, 0.32),
+    0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.game-dice__face::before,
+.game-dice__face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.game-dice__face::before {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), transparent 40%, rgba(15, 23, 42, 0.12));
+}
+
+.game-dice__face::after {
+  box-shadow: inset 0 0 18px rgba(15, 23, 42, 0.12);
+}
+
+.game-dice__face--neutral {
+  place-items: center;
+  color: #334155;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.14) 18%, transparent 19%),
+    linear-gradient(145deg, #f8fafc 0%, #e2e8f0 48%, #cbd5e1 100%);
+}
+
+.game-dice__face--neutral span {
+  border: 1px solid rgba(51, 65, 85, 0.18);
+  border-radius: 999px;
+  padding: 0.38em 0.72em;
+  background: rgba(255, 255, 255, 0.46);
+  font-size: clamp(0.92rem, 1.1vw, 1.05rem);
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.game-dice__pip {
+  position: absolute;
+  width: 17%;
+  height: 17%;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 30%, #475569, #0f172a 64%, #020617 100%);
+  box-shadow:
+    inset 0 3px 4px rgba(255, 255, 255, 0.12),
+    inset 0 -4px 6px rgba(0, 0, 0, 0.42),
+    0 1px 0 rgba(255, 255, 255, 0.26);
+  transform: translate(-50%, -50%);
+}
+
+.game-dice__pip--top-left {
+  top: 27%;
+  left: 27%;
+}
+
+.game-dice__pip--top-right {
+  top: 27%;
+  left: 73%;
+}
+
+.game-dice__pip--middle-left {
+  top: 50%;
+  left: 27%;
+}
+
+.game-dice__pip--middle-right {
+  top: 50%;
+  left: 73%;
+}
+
+.game-dice__pip--center {
+  top: 50%;
+  left: 50%;
+}
+
+.game-dice__pip--bottom-left {
+  top: 73%;
+  left: 27%;
+}
+
+.game-dice__pip--bottom-right {
+  top: 73%;
+  left: 73%;
+}
+
+.game-dice-panel__copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.game-dice-panel__copy span {
+  color: #7dd3fc;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.game-dice-panel__copy strong {
+  color: #f8fafc;
+  font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+}
+
+@keyframes game-dice-face-change {
+  0% {
+    opacity: 0.82;
+    filter: brightness(1.22) saturate(1.08);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1) saturate(1);
+  }
+}
+
+@keyframes game-dice-face-settle {
+  0% {
+    filter: brightness(1.35) saturate(1.18);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+}
+
+@keyframes game-dice-panel-glow {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+      0 24px 70px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 24px 70px rgba(0, 0, 0, 0.3),
+      0 0 38px rgba(125, 211, 252, 0.16);
+  }
+}
+
+@keyframes game-dice-panel-settle {
+  0% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 24px 70px rgba(0, 0, 0, 0.3),
+      0 0 42px rgba(167, 243, 208, 0.24);
+  }
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+      0 24px 70px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-dice,
+  .game-dice__face-stage,
+  .game-dice-panel,
+  .game-dice-panel::after {
+    transition-duration: 1ms;
+    animation-duration: 1ms !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  .game-dice {
+    --game-dice-size: clamp(92px, 20vw, 132px);
+  }
+}
+
+@media (max-width: 560px) {
+  .game-dice-panel {
+    padding: 16px;
+  }
+
+  .game-dice {
+    --game-dice-size: clamp(86px, 32vw, 120px);
+  }
+}

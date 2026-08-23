@@ -1,0 +1,220 @@
+.classic-board-preview-page {
+  min-height: 100vh;
+  padding: 24px;
+  color: #e5e7eb;
+  background: #111827;
+}
+
+.classic-board-preview-page__header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1120px;
+  margin: 0 auto 18px;
+}
+
+.classic-board-preview-page__header p {
+  margin: 0 0 4px;
+  color: #93c5fd;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.classic-board-preview-page__header h1 {
+  margin: 0;
+  color: #f9fafb;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+}
+
+.classic-board-preview-page__toggle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.8);
+  color: #dbeafe;
+  font-weight: 700;
+}
+
+.classic-board-preview-card {
+  max-width: min(1120px, calc(100vh - 150px));
+  margin: 0 auto;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 22px;
+  padding: 14px;
+  background: #f8fafc;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
+}
+
+.classic-board-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.classic-board-preview__base {
+  fill: #f8fafc;
+  stroke: #111827;
+  stroke-width: 12;
+}
+
+.classic-board-preview__home rect {
+  fill: rgba(248, 250, 252, 0.95);
+  stroke: currentColor;
+  stroke-width: 8;
+}
+
+.classic-board-preview__home-ring {
+  fill: currentColor;
+  opacity: 0.2;
+  stroke: currentColor;
+  stroke-width: 5;
+}
+
+.classic-board-preview__home-ring--inner {
+  fill: rgba(255, 255, 255, 0.74);
+  opacity: 1;
+  stroke: rgba(17, 24, 39, 0.25);
+  stroke-width: 4;
+}
+
+.classic-board-preview__home-slot {
+  fill: #ffffff;
+  stroke: currentColor;
+  stroke-width: 5;
+}
+
+.classic-board-preview__home text {
+  fill: #111827;
+  font-size: 28px;
+  font-weight: 900;
+  text-anchor: middle;
+  text-transform: uppercase;
+}
+
+.classic-board-preview__home--yellow {
+  color: #facc15;
+}
+
+.classic-board-preview__home--green {
+  color: #22c55e;
+}
+
+.classic-board-preview__home--blue {
+  color: #38bdf8;
+}
+
+.classic-board-preview__home--red {
+  color: #ef4444;
+}
+
+.classic-board-preview__common-cell rect {
+  fill: #ffffff;
+  stroke: #111827;
+  stroke-width: 3;
+}
+
+.classic-board-preview__common-cell--safe rect {
+  fill: #f3f4f6;
+}
+
+.classic-board-preview__common-cell--start rect {
+  stroke-width: 6;
+}
+
+.classic-board-preview__safe-marker {
+  fill: none;
+  stroke: #111827;
+  stroke-width: 4;
+}
+
+.classic-board-preview__common-cell text,
+.classic-board-preview__final-cell text {
+  fill: #111827;
+  font-size: 26px;
+  font-weight: 900;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.classic-board-preview__final-cell rect {
+  stroke: #111827;
+  stroke-width: 3;
+}
+
+.classic-board-preview__final-cell--yellow rect {
+  fill: #fde047;
+}
+
+.classic-board-preview__final-cell--blue rect {
+  fill: #7dd3fc;
+}
+
+.classic-board-preview__final-cell--red rect {
+  fill: #fca5a5;
+}
+
+.classic-board-preview__final-cell--green rect {
+  fill: #86efac;
+}
+
+.classic-board-preview__goal polygon {
+  fill: #ffffff;
+  stroke: #111827;
+  stroke-width: 5;
+}
+
+.classic-board-preview__goal line {
+  stroke: #111827;
+  stroke-width: 4;
+}
+
+.classic-board-preview__goal text {
+  fill: #111827;
+  font-size: 28px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+
+.classic-board-preview__entry-markers text {
+  fill: #1d4ed8;
+  font-size: 15px;
+  font-weight: 800;
+  text-anchor: middle;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.classic-board-preview-page__notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  max-width: 1120px;
+  margin: 16px auto 0;
+}
+
+.classic-board-preview-page__notes span {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.82);
+  color: #e0f2fe;
+  font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .classic-board-preview-page {
+    padding: 14px;
+  }
+
+  .classic-board-preview-page__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

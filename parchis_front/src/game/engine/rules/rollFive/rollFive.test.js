@@ -50,6 +50,22 @@ function createRollFiveExitResult({ factionId, characterIds, removableCharacterI
 
 describe('getAvailableRollFiveActions', () => {
   describe('home exit', () => {
+    test.each([
+      [FACTION_IDS.YELLOW, 39],
+      [FACTION_IDS.GREEN, 22],
+      [FACTION_IDS.BLUE, 56],
+      [FACTION_IDS.RED, 5],
+    ])('offers %s home exit to canonical start square %i', (factionId, startSquare) => {
+      const characters = [
+        createCharacter({ id: `${factionId}.1`, factionId, position: createHomePosition() }),
+      ];
+
+      expect(getAvailableRollFiveActions({ factionId, characters }).availableActions).toEqual([
+        createExitHomeAction({ characterId: `${factionId}.1`, factionId }),
+      ]);
+      expect(START_SQUARE_BY_FACTION[factionId]).toBe(startSquare);
+    });
+
     test('offers home exit when the start square is empty', () => {
       const characters = [
         createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createHomePosition() }),

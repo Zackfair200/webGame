@@ -129,9 +129,7 @@ describe('resolveConsequences', () => {
     ]);
     const result = resolveConsequences({ state, events: [characterCaptured('red.1', 'blue.0')] });
 
-    expect(getCharacter(result.state, 'red.1').position).toEqual(
-      createFinalLanePosition(FACTION_IDS.RED, 4),
-    );
+    expect(getCharacter(result.state, 'red.1').position).toEqual(createCommonPosition(50));
     expect(getCharacter(result.state, 'blue.1').position).toEqual(createHomePosition());
     expect(result.generatedEvents.map((event) => event.type)).toEqual([
       EXECUTION_EVENT_TYPES.CHARACTER_MOVED,
@@ -142,7 +140,7 @@ describe('resolveConsequences', () => {
 
   test('resolves capture to +20 reaching GOAL and automatic +10', () => {
     const state = createState([
-      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(26) }),
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(60) }),
       createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
     ]);
     const result = resolveConsequences({ state, events: [characterCaptured('red.1', 'blue.0')] });
@@ -238,7 +236,7 @@ describe('resolveConsequences', () => {
       createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
       createCharacter({ id: 'blue.victim', factionId: FACTION_IDS.BLUE, position: createCommonPosition(30) }),
       createCharacter({ id: 'blue.goal', factionId: FACTION_IDS.BLUE, position: createGoalPosition() }),
-      createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(40) }),
+      createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(41) }),
     ]);
     const result = resolveConsequences({
       state,
@@ -250,9 +248,9 @@ describe('resolveConsequences', () => {
 
   test('resolves deep generated rewards before sister pending reward', () => {
     const state = createState([
-      createCharacter({ id: 'yellow.1', factionId: FACTION_IDS.YELLOW, position: createCommonPosition(10) }),
-      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(30) }),
-      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(50) }),
+      createCharacter({ id: 'yellow.1', factionId: FACTION_IDS.YELLOW, position: createCommonPosition(44) }),
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(64) }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(16) }),
       createCharacter({ id: 'blue.goal', factionId: FACTION_IDS.BLUE, position: createGoalPosition() }),
       createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(40) }),
     ]);
@@ -336,7 +334,7 @@ describe('resolveConsequences', () => {
       createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
       createCharacter({ id: 'red.3', factionId: FACTION_IDS.RED, position: createCommonPosition(30) }),
       createCharacter({ id: 'green.1', factionId: FACTION_IDS.GREEN, position: createCommonPosition(20) }),
-      createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(40) }),
+      createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(50) }),
     ]);
     const first = resolveConsequences({
       state,
@@ -489,16 +487,18 @@ describe('resolveConsequences', () => {
 
   test('resolves a reasonably long valid capture reward chain', () => {
     const state = createState([
-      createCharacter({ id: 'yellow.1', factionId: FACTION_IDS.YELLOW, position: createCommonPosition(10) }),
-      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(30) }),
-      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(50) }),
-      createCharacter({ id: 'red.3', factionId: FACTION_IDS.RED, position: createCommonPosition(2) }),
+      createCharacter({ id: 'yellow.1', factionId: FACTION_IDS.YELLOW, position: createCommonPosition(39) }),
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(59) }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(11) }),
+      createCharacter({ id: 'red.3', factionId: FACTION_IDS.RED, position: createCommonPosition(31) }),
     ]);
     const result = resolveConsequences({ state, events: [characterCaptured('yellow.1', 'x')] });
 
     expect(result.status).toBe(CONSEQUENCE_RESOLUTION_STATUS.RESOLVED);
     expect(result.generatedEvents.filter((event) => event.type === EXECUTION_EVENT_TYPES.CHARACTER_CAPTURED)).toHaveLength(3);
-    expect(getCharacter(result.state, 'yellow.1').position).toEqual(createCommonPosition(2));
+    expect(getCharacter(result.state, 'yellow.1').position).toEqual(
+      createFinalLanePosition(FACTION_IDS.YELLOW, 3),
+    );
   });
 
   test('propagates errors from lower layers', () => {

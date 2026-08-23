@@ -64,8 +64,38 @@ function createCaptureRewardAction({ characterId, movement }) {
   return {
     type: REWARD_ACTION_TYPES.CAPTURE_REWARD_MOVEMENT,
     characterId,
-    steps: REWARD_STEPS.CAPTURE,
+    steps: movement.steps,
+    rewardSteps: REWARD_STEPS.CAPTURE,
     movement,
+  };
+}
+
+function getHighestLegalCaptureRewardMovement({ characterId, characters }) {
+  let lastFailure = null;
+
+  for (let steps = REWARD_STEPS.CAPTURE; steps >= 1; steps -= 1) {
+    const movement = evaluateMovement({
+      characterId,
+      steps,
+      characters,
+    });
+
+    if (movement.legal) {
+      return {
+        status: REWARD_STATUS.AVAILABLE,
+        movement: {
+          ...movement,
+          steps,
+        },
+      };
+    }
+
+    lastFailure = movement;
+  }
+
+  return {
+    status: REWARD_STATUS.LOST,
+    reason: lastFailure?.reason,
   };
 }
 
@@ -82,19 +112,18 @@ function getCaptureRewardAvailability({ state, reward }) {
   assertCaptureReward(reward);
 
   const characters = getCharactersFromState(state);
-  const movement = evaluateMovement({
+  const rewardMovement = getHighestLegalCaptureRewardMovement({
     characterId: reward.characterId,
-    steps: REWARD_STEPS.CAPTURE,
     characters,
   });
 
-  if (!movement.legal) {
+  if (rewardMovement.status === REWARD_STATUS.LOST) {
     return {
       reward: cloneReward(reward),
       status: REWARD_STATUS.LOST,
       mustChooseAction: false,
       availableActions: [],
-      reason: movement.reason,
+      reason: rewardMovement.reason,
     };
   }
 
@@ -105,7 +134,7 @@ function getCaptureRewardAvailability({ state, reward }) {
     availableActions: [
       createCaptureRewardAction({
         characterId: reward.characterId,
-        movement,
+        movement: rewardMovement.movement,
       }),
     ],
   };

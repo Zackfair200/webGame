@@ -80,19 +80,24 @@ describe('evaluateMovement', () => {
       );
     });
 
-    test('allows movement from common into final lane', () => {
+    test.each([
+      [FACTION_IDS.YELLOW, 38],
+      [FACTION_IDS.GREEN, 21],
+      [FACTION_IDS.BLUE, 55],
+      [FACTION_IDS.RED, 4],
+    ])('allows %s movement from canonical entry %i into final lane', (factionId, entrySquare) => {
       const characters = [
-        createCharacter({ id: 'yellow.1', factionId: FACTION_IDS.YELLOW, position: createCommonPosition(4) }),
+        createCharacter({ id: `${factionId}.1`, factionId, position: createCommonPosition(entrySquare) }),
       ];
 
       expectLegalMovement(
-        evaluateMovement({ characterId: 'yellow.1', steps: 3, characters }),
+        evaluateMovement({ characterId: `${factionId}.1`, steps: 3, characters }),
         {
-          destination: createFinalLanePosition(FACTION_IDS.YELLOW, 3),
+          destination: createFinalLanePosition(factionId, 3),
           path: [
-            createFinalLanePosition(FACTION_IDS.YELLOW, 1),
-            createFinalLanePosition(FACTION_IDS.YELLOW, 2),
-            createFinalLanePosition(FACTION_IDS.YELLOW, 3),
+            createFinalLanePosition(factionId, 1),
+            createFinalLanePosition(factionId, 2),
+            createFinalLanePosition(factionId, 3),
           ],
           steps: 3,
         },
@@ -258,12 +263,12 @@ describe('evaluateMovement', () => {
 
     test('allows safe sharing with one enemy on a start square', () => {
       const characters = [
-        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(3) }),
+        createCharacter({ id: 'yellow.1', factionId: FACTION_IDS.YELLOW, position: createCommonPosition(3) }),
         createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(5) }),
       ];
 
       expectLegalMovement(
-        evaluateMovement({ characterId: 'red.1', steps: 2, characters }),
+        evaluateMovement({ characterId: 'yellow.1', steps: 2, characters }),
         {
           destination: createCommonPosition(5),
           path: [createCommonPosition(4), createCommonPosition(5)],

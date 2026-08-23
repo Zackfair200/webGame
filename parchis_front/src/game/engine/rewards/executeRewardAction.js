@@ -1,6 +1,5 @@
 import { EXECUTION_EVENT_TYPES } from '../actions/types';
 import { applyMovementToState } from '../actions/applyMovement';
-import { evaluateMovement } from '../rules/legalMovement/legalMovement';
 import { getCharactersFromState } from '../state/characters';
 import {
   REWARD_ACTION_TYPES,
@@ -64,30 +63,28 @@ function executeCaptureRewardAction({ state, reward, action }) {
     throw new Error('captureReward must be executed by the capturing character.');
   }
 
-  const characters = getCharactersFromState(state);
-  const movement = evaluateMovement({
-    characterId: reward.characterId,
-    steps: REWARD_STEPS.CAPTURE,
-    characters,
-  });
+  const availability = getAvailableRewardActions({ state, reward });
 
-  if (!movement.legal) {
+  if (availability.status === REWARD_STATUS.LOST) {
     return createRewardLostResult({
       state,
       rewardType: REWARD_TYPES.CAPTURE_REWARD,
       characterId: reward.characterId,
       steps: REWARD_STEPS.CAPTURE,
-      reason: movement.reason,
+      reason: availability.reason,
     });
   }
+
+  const characters = getCharactersFromState(state);
+  const [availableAction] = availability.availableActions;
 
   return applyMovementToState({
     state,
     characters,
     actionType: REWARD_TYPES.CAPTURE_REWARD,
     characterId: reward.characterId,
-    movement,
-    steps: REWARD_STEPS.CAPTURE,
+    movement: availableAction.movement,
+    steps: availableAction.steps,
   });
 }
 

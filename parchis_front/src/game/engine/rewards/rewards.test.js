@@ -1,9 +1,7 @@
 import {
-  DESTINATION_FAILURE_REASONS,
   EXECUTION_EVENT_TYPES,
   FACTION_IDS,
   LEGAL_MOVEMENT_FAILURE_REASONS,
-  MOVEMENT_FAILURE_REASONS,
   REWARD_ACTION_TYPES,
   REWARD_LOST_REASONS,
   REWARD_STATUS,
@@ -201,7 +199,7 @@ describe('reward primitives', () => {
       })).toThrow('captureReward.steps must be exactly 20.');
     });
 
-    test('belongs exclusively to the capturing character and offers exactly a 20-step action', () => {
+    test('belongs exclusively to the capturing character and offers the highest legal movement up to 20', () => {
       const state = createState([
         createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
         createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(20) }),
@@ -215,6 +213,7 @@ describe('reward primitives', () => {
         type: REWARD_ACTION_TYPES.CAPTURE_REWARD_MOVEMENT,
         characterId: 'red.1',
         steps: 20,
+        rewardSteps: 20,
       });
     });
 
@@ -241,13 +240,65 @@ describe('reward primitives', () => {
       ]);
     });
 
-    test('respects barriers and loses the reward when blocked', () => {
+    test('uses the highest legal partial movement when exact 20 is blocked by a barrier', () => {
       const state = createState([
         createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
-        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(15) }),
-        createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(15) }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(28) }),
+        createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(28) }),
       ]);
       const availability = getAvailableRewardActions({ state, reward: captureReward('red.1') });
+
+      expect(availability.status).toBe(REWARD_STATUS.AVAILABLE);
+      expect(availability.availableActions[0]).toMatchObject({
+        type: REWARD_ACTION_TYPES.CAPTURE_REWARD_MOVEMENT,
+        characterId: 'red.1',
+        steps: 17,
+        rewardSteps: 20,
+        movement: expect.objectContaining({
+          destination: createCommonPosition(27),
+        }),
+      });
+    });
+
+    test('uses one step when it is the only legal captureReward movement', () => {
+      const state = createState([
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+        createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+      ]);
+      const availability = getAvailableRewardActions({ state, reward: captureReward('red.1') });
+      const result = executeRewardAction({
+        state,
+        reward: captureReward('red.1'),
+        action: availability.availableActions[0],
+      });
+
+      expect(availability.availableActions[0]).toMatchObject({
+        characterId: 'red.1',
+        steps: 1,
+        rewardSteps: 20,
+      });
+      expect(getCharacter(result.state, 'red.1').position).toEqual(createCommonPosition(11));
+      expect(result.events[0]).toMatchObject({
+        characterId: 'red.1',
+        to: createCommonPosition(11),
+        steps: 1,
+        actionType: REWARD_TYPES.CAPTURE_REWARD,
+      });
+    });
+
+    test('loses captureReward only when no movement from 1 through 20 is legal', () => {
+      const state = createState([
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(11) }),
+        createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(11) }),
+      ]);
+      const availability = getAvailableRewardActions({ state, reward: captureReward('red.1') });
+      const result = executeRewardAction({
+        state,
+        reward: captureReward('red.1'),
+        action: loseRewardAction(),
+      });
 
       expect(availability).toMatchObject({
         status: REWARD_STATUS.LOST,
@@ -255,6 +306,15 @@ describe('reward primitives', () => {
         availableActions: [],
         reason: LEGAL_MOVEMENT_FAILURE_REASONS.BARRIER,
       });
+      expect(result.events).toEqual([
+        {
+          type: EXECUTION_EVENT_TYPES.REWARD_LOST,
+          rewardType: REWARD_TYPES.CAPTURE_REWARD,
+          characterId: 'red.1',
+          steps: 20,
+          reason: LEGAL_MOVEMENT_FAILURE_REASONS.BARRIER,
+        },
+      ]);
     });
 
     test('loses captureReward when the capturing character is currently at HOME', () => {
@@ -313,7 +373,7 @@ describe('reward primitives', () => {
       ]);
     });
 
-    test('respects full destination occupancy', () => {
+    test('uses partial movement when exact 20 destination is full', () => {
       const state = createState([
         createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(9) }),
         createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(29) }),
@@ -321,16 +381,20 @@ describe('reward primitives', () => {
       ]);
       const availability = getAvailableRewardActions({ state, reward: captureReward('red.1') });
 
-      expect(availability).toMatchObject({
-        status: REWARD_STATUS.LOST,
-        availableActions: [],
-        reason: DESTINATION_FAILURE_REASONS.DESTINATION_FULL,
+      expect(availability.status).toBe(REWARD_STATUS.AVAILABLE);
+      expect(availability.availableActions[0]).toMatchObject({
+        characterId: 'red.1',
+        steps: 19,
+        rewardSteps: 20,
+        movement: expect.objectContaining({
+          destination: createCommonPosition(28),
+        }),
       });
     });
 
     test('respects legal bounce for captureReward', () => {
       const state = createState([
-        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(27) }),
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(61) }),
       ]);
       const result = executeRewardAction({
         state,
@@ -343,7 +407,7 @@ describe('reward primitives', () => {
       );
     });
 
-    test('loses incompletable captureReward without partial movement', () => {
+    test('uses the highest legal partial movement near final-lane and GOAL constraints', () => {
       const state = createState([
         createCharacter({
           id: 'red.1',
@@ -351,22 +415,23 @@ describe('reward primitives', () => {
           position: createFinalLanePosition(FACTION_IDS.RED, 1),
         }),
       ]);
-      const before = JSON.parse(JSON.stringify(state));
       const result = executeRewardAction({
         state,
         reward: captureReward('red.1'),
         action: captureRewardAction('red.1'),
       });
 
-      expect(result.state).toBe(state);
-      expect(state).toEqual(before);
+      expect(getCharacter(result.state, 'red.1').position).toEqual(
+        createFinalLanePosition(FACTION_IDS.RED, 1),
+      );
       expect(result.events).toEqual([
         {
-          type: EXECUTION_EVENT_TYPES.REWARD_LOST,
-          rewardType: REWARD_TYPES.CAPTURE_REWARD,
+          type: EXECUTION_EVENT_TYPES.CHARACTER_MOVED,
           characterId: 'red.1',
-          steps: 20,
-          reason: MOVEMENT_FAILURE_REASONS.MOVEMENT_BEYOND_FINAL_LANE_START,
+          from: createFinalLanePosition(FACTION_IDS.RED, 1),
+          to: createFinalLanePosition(FACTION_IDS.RED, 1),
+          steps: 14,
+          actionType: REWARD_TYPES.CAPTURE_REWARD,
         },
       ]);
     });
@@ -421,7 +486,7 @@ describe('reward primitives', () => {
 
     test('captureReward that reaches GOAL emits characterReachedGoal but does not execute +10', () => {
       const state = createState([
-        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(26) }),
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(60) }),
       ]);
       const result = executeRewardAction({
         state,
@@ -688,7 +753,7 @@ describe('reward primitives', () => {
     test('goalReward that reaches GOAL emits characterReachedGoal', () => {
       const state = createState([
         createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createGoalPosition() }),
-        createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(36) }),
+        createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(2) }),
       ]);
       const result = executeRewardAction({
         state,
@@ -782,7 +847,7 @@ describe('reward primitives', () => {
 
     test('explicitly derives goalReward after a +20 reaches GOAL', () => {
       const state = createState([
-        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(26) }),
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(60) }),
       ]);
       const result = executeRewardAction({
         state,

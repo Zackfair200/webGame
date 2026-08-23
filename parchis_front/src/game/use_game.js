@@ -1,18 +1,11 @@
-import { createContext, useState } from "react";
+import { createContext, useState, useMemo } from "react";
 import { makeNewGameState } from "./GameState";
-import { Players } from "./assets/players";
-import { Characters } from "./assets/characters";
 
 export const GameContext = createContext({
-    counter: 0,
     gameState: makeNewGameState(),
-    dispatch(action, payload) {}
+    tokenPositions: {},
+    dispatch(event) {}
 })
-
-
-function useGame() {
-
-}
 
 
 export function SelectTokenEvent({player, character}) {
@@ -33,6 +26,23 @@ export function GameStateProvider(props) {
     const [gameState, setGameState] = useState(() => props.initialState || makeNewGameState());
     const [tokenSelected, setTokenSelected] = useState(null);
 
+    const tokenPositions = useMemo(() => {
+        const value = {}
+        Object.keys(gameState).map(player => {
+            const characters = gameState[player]
+            Object.keys(characters).map(character => {
+                const position = gameState[player][character]
+                const playerToken = {player, character}
+                const tokenList = value[position] || []
+                value[position] = [
+                    ...tokenList,
+                    playerToken
+                ]
+            })
+        })
+        return value
+    }, [gameState])
+
     function moveCharacterToBox({player, character}, box) {
         setGameState({
           ...gameState,
@@ -45,6 +55,7 @@ export function GameStateProvider(props) {
 
     const contextValue = {
         gameState,
+        tokenPositions,
         dispatch: ({event, ...payload}) => {
             if (event === "SELECT_TOKEN") {
                 setTokenSelected(payload)

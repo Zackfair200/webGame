@@ -1,11 +1,11 @@
 import React, { useContext } from "react";
-import { getCharacterAsset, Characters } from "./assets/characters";
+import { getCharacterAsset } from "./assets/characters";
 import { GameContext, BoxClickEvent, SelectTokenEvent } from "./use_game";
 
 
 export function BoardBox(props) {
   const context = useContext(GameContext);
-  const gameState = context.gameState;
+  const tokens = context.tokenPositions[props.position] ||  []
 
   function handleBoxClick() {
     context.dispatch(BoxClickEvent({ boxId: props.position }));
@@ -13,8 +13,7 @@ export function BoardBox(props) {
 
   return (
     <td rowSpan="2" onClick={handleBoxClick}>
-      {props.position}
-      {getTokensForPosition(gameState, props.position).map((playerToken) => {
+      {tokens.map((playerToken) => {
         const tokenClassName = `emoji token player-${playerToken.player}`;
 
         function handleClick(e) {
@@ -32,21 +31,7 @@ export function BoardBox(props) {
           </span>
         );
       })}
+      {props.position}
     </td>
   );
-}
-
-function getTokensForPosition(gameState, position) {
-  const result = [];
-  Object.keys(gameState).map((playerColor) => {
-    const playerState = gameState[playerColor];
-    Object.keys(playerState).map((characterName) => {
-      const tokenPosition = playerState[characterName];
-      if (position === tokenPosition) {
-        result.push({ player: playerColor, character: characterName });
-      }
-    });
-  });
-
-  return result;
 }

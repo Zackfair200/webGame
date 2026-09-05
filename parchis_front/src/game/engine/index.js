@@ -32,6 +32,7 @@ export * from './abilities/abilityState';
 export * from './abilities/abilityEvents';
 export * from './abilities/druidVines';
 export * from './abilities/iceMageFreezing';
+export * from './abilities/hunterTrap';
 export * from './effects/types';
 export * from './effects/effectState';
 export * from './effects/characterEffects';

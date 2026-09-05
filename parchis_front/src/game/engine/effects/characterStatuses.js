@@ -24,3 +24,9 @@ export function consumeUsedMovementStatuses({ state, characterId, usedStatusEffe
     effectIds: usedStatusEffectIds,
   });
 }
+
+export function isCharacterBleeding({ state, characterId }) {
+  return (state.characterStatesById?.[characterId]?.effects || []).some(
+    (effect) => effect.type === CHARACTER_STATUS_TYPES.BLEEDING,
+  );
+}

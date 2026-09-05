@@ -154,6 +154,11 @@ test.each([2, 3, 4])('creates a ready initial state for %i players', (playerCoun
           [ABILITY_IDS.ICE_MAGE_FREEZING]: { charges: 2 },
         },
       };
+      expectedCharacterStates['blue.hunter'] = {
+        abilityStatesById: {
+          [ABILITY_IDS.HUNTER_TRAP]: { charges: 2 },
+        },
+      };
     }
     expect(state.characterStatesById).toEqual(expectedCharacterStates);
     expect(state.factionStatesById).toEqual({});

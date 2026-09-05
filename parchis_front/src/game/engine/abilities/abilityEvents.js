@@ -1,10 +1,12 @@
 import { EXECUTION_EVENT_TYPES } from '../actions/types';
 import { resetDruidVinesAfterCapture } from './druidVines';
 import { resetIceMageFreezingAfterCapture } from './iceMageFreezing';
+import { resetHunterTrapAfterCapture } from './hunterTrap';
 
 const CAPTURE_STATE_TRANSITIONS = [
   resetDruidVinesAfterCapture,
   resetIceMageFreezingAfterCapture,
+  resetHunterTrapAfterCapture,
 ];
 
 export function applyAbilityStateTransitionsFromEvents({ state, events }) {

@@ -1,4 +1,4 @@
-import { Snowflake, Sprout } from 'lucide-react';
+import { Target, Snowflake, Sprout } from 'lucide-react';
 import { ABILITY_IDS, OPTIONAL_ABILITY_ACTION_TYPES } from '../engine';
 
 export const ABILITY_PRESENTATION_REGISTRY = Object.freeze({
@@ -19,6 +19,16 @@ export const ABILITY_PRESENTATION_REGISTRY = Object.freeze({
     visualTheme: 'frost',
     actionLabels: Object.freeze({
       [OPTIONAL_ABILITY_ACTION_TYPES.ACTIVATE]: 'Congelar',
+      [OPTIONAL_ABILITY_ACTION_TYPES.SKIP]: 'Omitir',
+    }),
+  }),
+  [ABILITY_IDS.HUNTER_TRAP]: Object.freeze({
+    title: 'Trampa',
+    description: 'Coloca una trampa en tu casilla final para detener y sangrar al próximo enemigo.',
+    Icon: Target,
+    visualTheme: 'metal',
+    actionLabels: Object.freeze({
+      [OPTIONAL_ABILITY_ACTION_TYPES.ACTIVATE]: 'Colocar trampa',
       [OPTIONAL_ABILITY_ACTION_TYPES.SKIP]: 'Omitir',
     }),
   }),

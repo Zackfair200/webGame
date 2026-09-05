@@ -85,6 +85,38 @@
   stroke-width: 2;
 }
 
+.terrain-effect__trap-glow {
+  opacity: 0.38;
+  animation: terrain-trap-pulse 4.2s ease-in-out infinite;
+}
+
+.terrain-effect__trap-wash {
+  opacity: 0.5;
+}
+
+.terrain-effect__trap-border {
+  fill: none;
+  stroke: rgba(120, 120, 120, 0.85);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-dasharray: 8 5;
+}
+
+.terrain-effect__trap-teeth {
+  fill: none;
+  stroke: rgba(80, 80, 80, 0.9);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+
+.terrain-effect__trap-plate {
+  fill: rgba(100, 100, 100, 0.75);
+  stroke: rgba(60, 60, 60, 0.9);
+  stroke-width: 1.5;
+}
+
 @keyframes terrain-vines-breathe {
   0%, 100% {
     opacity: 0.38;
@@ -105,6 +137,16 @@
   }
 }
 
+@keyframes terrain-trap-pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .terrain-effect__vines-glow {
     animation: none;
@@ -114,5 +156,10 @@
   .terrain-effect__ice-glow {
     animation: none;
     opacity: 0.44;
+  }
+
+  .terrain-effect__trap-glow {
+    animation: none;
+    opacity: 0.42;
   }
 }

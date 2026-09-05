@@ -5,6 +5,10 @@ import {
   activateIceMageFreezing,
   getIceMageFreezingActivationOptions,
 } from '../abilities/iceMageFreezing';
+import {
+  activateHunterTrap,
+  getHunterTrapActivationOptions,
+} from '../abilities/hunterTrap';
 import { MOVEMENT_TYPES } from '../movement/types';
 import {
   clonePosition,
@@ -53,6 +57,18 @@ const OPTIONAL_ABILITY_BEHAVIORS = Object.freeze({
       position: decision.position,
       previousPosition: decision.previousPosition,
       targetCharacterId: action.targetCharacterId,
+    }),
+  }),
+  [ABILITY_IDS.HUNTER_TRAP]: Object.freeze({
+    getOptions: ({ state, decision }) => getHunterTrapActivationOptions({
+      state,
+      characterId: decision.characterId,
+      position: decision.position,
+    }),
+    activate: ({ state, decision }) => activateHunterTrap({
+      state,
+      characterId: decision.characterId,
+      position: decision.position,
     }),
   }),
 });

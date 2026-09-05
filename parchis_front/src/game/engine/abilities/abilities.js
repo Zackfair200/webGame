@@ -4,6 +4,7 @@ import { ABILITY_ACTIVATION_TYPES } from './types';
 export const ABILITY_IDS = Object.freeze({
   DRUID_VINES: 'druid.vines',
   ICE_MAGE_FREEZING: 'iceMage.freezing',
+  HUNTER_TRAP: 'hunter.trap',
   RANGER_PASS_THROUGH_BARRIERS: 'ranger.passThroughBarriers',
   ASSASSIN_CAPTURE_ON_SAFE_SQUARE: 'assassin.captureOnSafeSquare',
 });
@@ -61,9 +62,22 @@ export const ASSASSIN_CAPTURE_ON_SAFE_SQUARE = createAbilityDefinition({
   },
 });
 
+export const HUNTER_TRAP = createAbilityDefinition({
+  id: ABILITY_IDS.HUNTER_TRAP,
+  characterType: 'hunter',
+  activationType: ABILITY_ACTIVATION_TYPES.PASSIVE,
+  hooks: [ABILITY_HOOKS.OPTIONAL_POST_MOVEMENT_ACTIVATION],
+  initialState: { charges: 2 },
+  metadata: {
+    label: 'Trampa',
+    permanent: true,
+  },
+});
+
 export const ABILITY_REGISTRY = createAbilityRegistry([
   DRUID_VINES,
   ICE_MAGE_FREEZING,
+  HUNTER_TRAP,
   RANGER_PASS_THROUGH_BARRIERS,
   ASSASSIN_CAPTURE_ON_SAFE_SQUARE,
 ]);

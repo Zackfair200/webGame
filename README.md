@@ -247,7 +247,50 @@ Los movimientos `reward`, `forcedDisplacement`, `specialTraversal`, movimientos 
 
 Cuando el Mago de hielo es capturado recupera sus 2 cargas y se eliminan exclusivamente los Hielos persistentes creados por ese Mago. Los estados `frozen` que ya hubiera aplicado a enemigos no desaparecen por su captura y permanecen hasta ser consumidos por el siguiente movimiento normal de cada afectado.
 
-### Faccion Amarilla
+Cuando el Mago de hielo es capturado recupera sus 2 cargas y se eliminan exclusivamente los Hielos persistentes creados por ese Mago. Los estados `frozen` que ya hubiera aplicado a enemigos no desaparecen por su captura y permanecen hasta ser consumidos por el siguiente movimiento normal de cada afectado.
+
+#### Cazador: Trampa
+
+`Trampa` es una habilidad pasiva y permanente con activacion opcional despues de completar un movimiento `normal` o `reward` del Cazador. Dispone de 2 cargas por vida y cada activacion consume exactamente 1 carga. `forcedDisplacement`, `specialTraversal` y `EXIT_HOME` no permiten activarla.
+
+La habilidad coloca una Trampa exactamente en la casilla final real del movimiento del Cazador. La posicion deriva del path efectivo resuelto por el motor.
+
+Si la casilla esta vacia o contiene solo aliados, la Trampa se crea como `terrainEffect` persistente asociado al Cazador, su faccion, la habilidad y la posicion.
+
+El primer enemigo que ENTRE o PASE por esa casilla durante un movimiento `normal` o `reward`:
+1. se detiene exactamente en ella;
+2. termina inmediatamente su movimiento;
+3. pierde los pasos restantes;
+4. la Trampa desaparece;
+5. recibe SANGRADO.
+
+Los aliados del Cazador pueden entrar/pasar por la Trampa sin activarla ni consumirla.
+
+`Sangrado` es un estado persistente, serializable y no acumulable asociado al personaje afectado. Al recibirlo comienza con `remainingTurns = 3`. El contador decrementa unicamente al FINALIZAR cada turno de la FACCION del personaje afectado (3 → 2 → 1 → muerte). Evaluar movimientos, calcular acciones disponibles o revalidar no consume el contador; solo la progresion natural de turnos lo reduce.
+
+Cuando el contador llega a 0 al finalizar un turno de su faccion, si el personaje NO se ha curado previamente:
+- muere y vuelve a HOME;
+- NO es una captura;
+- NO concede +20;
+- no existe personaje capturador.
+
+Una ficha con Sangrado se cura si TERMINA un movimiento en una casilla SAFE/taberna. Pasar por una SAFE no cura. Debe terminar realmente alli. Al curarse, se elimina Sangrado y deja de participar en el contador.
+
+Si una ficha que YA tiene Sangrado activa otra Trampa:
+- se detiene igualmente;
+- la nueva Trampa se consume;
+- NO recibe un segundo Sangrado;
+- NO se reinicia el contador;
+- NO recupera remainingTurns;
+- NO se modifica el Sangrado existente.
+
+La Trampa es un tercer terrain effect independiente junto a Enredaderas e Hielo. Mantiene la semántica de FASE 1.3C: se valida el recorrido completo solicitado y su destino teorico antes de resolver terrain. Una Trampa nunca puede convertir un movimiento ilegal en legal. Montaraz NO es inmune a Trampas. MovementReward puede activar una Trampa normalmente.
+
+Cuando capturan al Cazador:
+- vuelve a HOME normalmente;
+- recupera sus 2 cargas;
+- desaparecen unicamente las Trampas activas creadas por ese Cazador.
+Los Sangrados que el Cazador ya haya aplicado a enemigos permanecen activos.
 
 - Paladin
 - Monje

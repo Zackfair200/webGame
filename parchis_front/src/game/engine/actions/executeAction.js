@@ -7,7 +7,7 @@ import { EXECUTABLE_ACTION_TYPES } from './types';
 
 export function executeAction({ state, factionId, roll, action, choice }) {
   const characters = getCharactersFromState(state);
-  const revalidated = revalidateAction({ factionId, roll, action, characters });
+  const revalidated = revalidateAction({ state, factionId, roll, action, characters });
 
   if (revalidated.action.type === EXECUTABLE_ACTION_TYPES.NORMAL_MOVEMENT) {
     return executeNormalMovementAction({

@@ -2,6 +2,7 @@ import { getBarrierAtPosition } from '../rules/barriers/barriers';
 import { getCharactersFromState } from '../state/characters';
 import { clonePosition } from '../state/positions';
 import { applyMovementToState } from './applyMovement';
+import { MOVEMENT_SOURCE_TYPES, MOVEMENT_TYPES } from '../movement/types';
 import { EXECUTION_EVENT_TYPES } from './types';
 
 export function executeBreakBarrierAction({ state, characters, action, movement, steps }) {
@@ -9,6 +10,8 @@ export function executeBreakBarrierAction({ state, characters, action, movement,
     state,
     characters,
     actionType: action.type,
+    movementType: MOVEMENT_TYPES.NORMAL,
+    source: { type: MOVEMENT_SOURCE_TYPES.DICE, roll: steps },
     characterId: action.characterId,
     movement,
     steps,

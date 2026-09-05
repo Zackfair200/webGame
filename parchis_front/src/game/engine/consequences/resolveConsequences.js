@@ -1,17 +1,18 @@
-import { executeRewardAction } from '../rewards/executeRewardAction';
-import { getAvailableRewardActions } from '../rewards/rewardAvailability';
-import { deriveRewardsFromEvents } from '../rewards/rewardDetection';
 import { REWARD_ACTION_TYPES, REWARD_STATUS } from '../rewards/types';
+import { getAvailableDecisionActions } from '../decisions/decisions';
+import {
+  cloneConsequence,
+  createDecisionForConsequence,
+  deriveConsequencesFromEvents,
+  executeConsequence,
+  getConsequenceAvailability,
+} from './consequenceItems';
 import { CONSEQUENCE_RESOLUTION_STATUS } from './types';
 
 function assertArray(value, message) {
   if (!Array.isArray(value)) {
     throw new Error(message);
   }
-}
-
-function cloneReward(reward) {
-  return { ...reward };
 }
 
 function cloneMovement(movement) {
@@ -24,12 +25,16 @@ function cloneMovement(movement) {
     destination: movement.destination ? { ...movement.destination } : movement.destination,
     path: Array.isArray(movement.path) ? movement.path.map((position) => ({ ...position })) : movement.path,
     outcome: movement.outcome ? { ...movement.outcome } : movement.outcome,
+    terrainTriggers: Array.isArray(movement.terrainTriggers)
+      ? movement.terrainTriggers.map(cloneValue)
+      : movement.terrainTriggers,
   };
 }
 
 function cloneAction(action) {
   return {
     ...action,
+    rewardSource: action.rewardSource ? { ...action.rewardSource } : action.rewardSource,
     movement: cloneMovement(action.movement),
   };
 }
@@ -38,8 +43,8 @@ function cloneEvents(events) {
   return events.map((event) => ({ ...event }));
 }
 
-function cloneRewards(rewards) {
-  return rewards.map(cloneReward);
+function cloneConsequences(consequences) {
+  return consequences.map(cloneConsequence);
 }
 
 function createResolvedResult({ state, inputEvents, generatedEvents }) {
@@ -53,25 +58,31 @@ function createResolvedResult({ state, inputEvents, generatedEvents }) {
   };
 }
 
-function createChoiceRequiredResult({
+function createDecisionRequiredResult({
   state,
   inputEvents,
   generatedEvents,
-  pendingReward,
-  availableActions,
-  remainingRewards,
+  pendingDecision,
+  availableDecisionActions,
+  pendingConsequences,
 }) {
   const generatedEventsSnapshot = cloneEvents(generatedEvents);
 
   return {
-    status: CONSEQUENCE_RESOLUTION_STATUS.CHOICE_REQUIRED,
+    status: CONSEQUENCE_RESOLUTION_STATUS.DECISION_REQUIRED,
     state,
     events: [...cloneEvents(inputEvents), ...cloneEvents(generatedEventsSnapshot)],
     generatedEvents: generatedEventsSnapshot,
-    pendingReward: cloneReward(pendingReward),
-    availableActions: availableActions.map(cloneAction),
-    remainingRewards: cloneRewards(remainingRewards),
+    pendingConsequences: cloneConsequences(pendingConsequences),
+    pendingDecision: cloneValue(pendingDecision),
+    availableDecisionActions: availableDecisionActions.map(cloneAction),
   };
+}
+
+function cloneValue(value) {
+  return value === undefined || value === null
+    ? value
+    : JSON.parse(JSON.stringify(value));
 }
 
 function createStoppedResult({ state, inputEvents, generatedEvents, stop }) {
@@ -121,9 +132,9 @@ function getAutomaticAction(availability) {
   return null;
 }
 
-export function resolveConsequences({ state, events, remainingRewards = [], shouldStop = null }) {
+export function resolveConsequences({ state, events, pendingConsequences = [], shouldStop = null }) {
   assertArray(events, 'events must be an array.');
-  assertArray(remainingRewards, 'remainingRewards must be an array.');
+  assertArray(pendingConsequences, 'pendingConsequences must be an array.');
 
   let currentState = state;
   const inputEvents = cloneEvents(events);
@@ -140,12 +151,12 @@ export function resolveConsequences({ state, events, remainingRewards = [], shou
     return initialStop;
   }
 
-  const queue = [
-    ...deriveRewardsFromEvents({ events }),
-    ...cloneRewards(remainingRewards),
+  const consequenceQueue = [
+    ...deriveConsequencesFromEvents({ state: currentState, events }),
+    ...cloneConsequences(pendingConsequences),
   ];
 
-  while (queue.length > 0) {
+  while (consequenceQueue.length > 0) {
     const queuedStop = getStopResult({
       shouldStop,
       state: currentState,
@@ -158,24 +169,29 @@ export function resolveConsequences({ state, events, remainingRewards = [], shou
       return queuedStop;
     }
 
-    const reward = queue.shift();
-    const availability = getAvailableRewardActions({ state: currentState, reward });
+    const consequence = consequenceQueue.shift();
+    const availability = getConsequenceAvailability({ state: currentState, consequence });
 
     if (availability.status === REWARD_STATUS.CHOICE_REQUIRED) {
-      return createChoiceRequiredResult({
+      const pendingDecision = createDecisionForConsequence(consequence);
+
+      return createDecisionRequiredResult({
         state: currentState,
         inputEvents,
         generatedEvents,
-        pendingReward: reward,
-        availableActions: availability.availableActions,
-        remainingRewards: queue,
+        pendingDecision,
+        availableDecisionActions: getAvailableDecisionActions({
+          state: currentState,
+          decision: pendingDecision,
+        }),
+        pendingConsequences: consequenceQueue,
       });
     }
 
     const action = getAutomaticAction(availability);
-    const result = executeRewardAction({
+    const result = executeConsequence({
       state: currentState,
-      reward,
+      consequence,
       action,
     });
 
@@ -194,8 +210,11 @@ export function resolveConsequences({ state, events, remainingRewards = [], shou
       return rewardStop;
     }
 
-    const newRewards = deriveRewardsFromEvents({ events: result.events });
-    queue.unshift(...newRewards);
+    const newConsequences = deriveConsequencesFromEvents({
+      state: currentState,
+      events: result.events,
+    });
+    consequenceQueue.unshift(...newConsequences);
   }
 
   return createResolvedResult({

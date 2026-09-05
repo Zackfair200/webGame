@@ -9,11 +9,22 @@ import {
   getMovableCharacters,
 } from '../../index';
 
-function createCharacter({ id, factionId, position }) {
+function createCharacter({ id, characterId, factionId, position }) {
   return {
     id,
+    ...(characterId ? { characterId } : {}),
     factionId,
     position,
+  };
+}
+
+function createState(characters) {
+  return {
+    players: Object.values(FACTION_IDS).map((factionId) => ({
+      id: `player-${factionId}`,
+      factionId,
+      characters: characters.filter((character) => character.factionId === factionId),
+    })),
   };
 }
 
@@ -220,6 +231,44 @@ describe('getMovableCharacters', () => {
       });
     });
 
+    test('available actions isolate assassin SAFE capture from a warrior SAFE share', () => {
+      const characters = [
+        createCharacter({
+          id: 'red.assassin',
+          characterId: 'assassin',
+          factionId: FACTION_IDS.RED,
+          position: createCommonPosition(10),
+        }),
+        createCharacter({
+          id: 'red.warrior',
+          characterId: 'warrior',
+          factionId: FACTION_IDS.RED,
+          position: createCommonPosition(10),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+      ];
+      const gameState = createState(characters);
+      const actions = getMovableCharacters({
+        factionId: FACTION_IDS.RED,
+        steps: 2,
+        characters,
+        gameState,
+      }).movableCharacters;
+
+      expect(actions.map((action) => action.characterId)).toEqual([
+        'red.assassin',
+        'red.warrior',
+      ]);
+      expect(actions[0].movement.outcome).toEqual({
+        type: DESTINATION_OUTCOME_TYPES.CAPTURE,
+        capturedCharacterId: 'blue.1',
+      });
+      expect(actions[1].movement.outcome).toEqual({
+        type: DESTINATION_OUTCOME_TYPES.SAFE_SHARE,
+        occupantCharacterId: 'blue.1',
+      });
+    });
+
     test('keeps a character available for a goal outcome', () => {
       const characters = [
         createCharacter({
@@ -280,6 +329,39 @@ describe('getMovableCharacters', () => {
         type: DESTINATION_OUTCOME_TYPES.CAPTURE,
         capturedCharacterId: 'blue.1',
       });
+    });
+
+    test('includes only the ranger when an intermediate barrier is the only blocker', () => {
+      const characters = [
+        createCharacter({
+          id: 'green.ranger',
+          characterId: 'ranger',
+          factionId: FACTION_IDS.GREEN,
+          position: createCommonPosition(9),
+        }),
+        createCharacter({
+          id: 'green.druid',
+          characterId: 'druid',
+          factionId: FACTION_IDS.GREEN,
+          position: createCommonPosition(9),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(11) }),
+        createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(11) }),
+      ];
+      const gameState = createState(characters);
+
+      expect(getMovableCharacters({
+        factionId: FACTION_IDS.GREEN,
+        steps: 4,
+        characters,
+      }).movableCharacters.map((candidate) => candidate.characterId)).toEqual(['green.ranger']);
+
+      expect(getMovableCharacters({
+        factionId: FACTION_IDS.GREEN,
+        steps: 4,
+        characters,
+        gameState,
+      }).movableCharacters.map((candidate) => candidate.characterId)).toEqual(['green.ranger']);
     });
 
     test('rejects an invalid faction id', () => {

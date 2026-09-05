@@ -51,10 +51,10 @@ describe('calculateDestination', () => {
     });
 
     test.each([
-      [FACTION_IDS.YELLOW, 1, 3, 4],
-      [FACTION_IDS.BLUE, 18, 3, 21],
-      [FACTION_IDS.RED, 35, 3, 38],
-      [FACTION_IDS.GREEN, 52, 3, 55],
+      [FACTION_IDS.YELLOW, 35, 3, 38],
+      [FACTION_IDS.GREEN, 18, 3, 21],
+      [FACTION_IDS.BLUE, 52, 3, 55],
+      [FACTION_IDS.RED, 1, 3, 4],
     ])('can finish exactly on the last common square for %s', (factionId, fromSquare, steps, lastCommonSquare) => {
       expectValidDestination(
         calculateDestination({
@@ -67,10 +67,10 @@ describe('calculateDestination', () => {
     });
 
     test.each([
-      [FACTION_IDS.YELLOW, 4],
-      [FACTION_IDS.BLUE, 21],
-      [FACTION_IDS.RED, 38],
-      [FACTION_IDS.GREEN, 55],
+      [FACTION_IDS.YELLOW, 38],
+      [FACTION_IDS.GREEN, 21],
+      [FACTION_IDS.BLUE, 55],
+      [FACTION_IDS.RED, 4],
     ])('enters final lane 1 from the last common square for %s', (factionId, lastCommonSquare) => {
       expectValidDestination(
         calculateDestination({
@@ -86,7 +86,7 @@ describe('calculateDestination', () => {
       expectValidDestination(
         calculateDestination({
           factionId: FACTION_IDS.YELLOW,
-          from: createCommonPosition(4),
+          from: createCommonPosition(38),
           steps: 3,
         }),
         createFinalLanePosition(FACTION_IDS.YELLOW, 3),
@@ -178,7 +178,7 @@ describe('calculateDestination', () => {
       expect(
         calculateDestination({
           factionId: FACTION_IDS.YELLOW,
-          from: createCommonPosition(4),
+          from: createCommonPosition(38),
           steps: 17,
         }),
       ).toEqual({
@@ -296,7 +296,7 @@ describe('calculateMovementPath', () => {
     expectValidPath(
       calculateMovementPath({
         factionId: FACTION_IDS.YELLOW,
-        from: createCommonPosition(4),
+        from: createCommonPosition(38),
         steps: 3,
       }),
       [
@@ -322,7 +322,7 @@ describe('calculateMovementPath', () => {
     expectValidPath(
       calculateMovementPath({
         factionId: FACTION_IDS.RED,
-        from: createCommonPosition(38),
+        from: createCommonPosition(4),
         steps: 8,
       }),
       [
@@ -358,7 +358,7 @@ describe('calculateMovementPath', () => {
     expectValidPath(
       calculateMovementPath({
         factionId: FACTION_IDS.GREEN,
-        from: createCommonPosition(55),
+        from: createCommonPosition(21),
         steps: 9,
       }),
       [
@@ -399,7 +399,7 @@ describe('calculateMovementPath', () => {
     expect(
       calculateMovementPath({
         factionId: FACTION_IDS.YELLOW,
-        from: createCommonPosition(4),
+        from: createCommonPosition(38),
         steps: 16,
       }),
     ).toEqual({

@@ -5,7 +5,7 @@ const ACTION_TYPES = Object.freeze({
   START_GAME: 'startGame',
   REGISTER_ROLL: 'registerRoll',
   EXECUTE_ACTION: 'executeAction',
-  EXECUTE_REWARD_CHOICE: 'executeRewardChoice',
+  EXECUTE_DECISION: 'executeDecision',
 });
 
 function createInitialState() {
@@ -58,12 +58,12 @@ function gameEngineReducer(state, action) {
     }));
   }
 
-  if (action.type === ACTION_TYPES.EXECUTE_REWARD_CHOICE) {
+  if (action.type === ACTION_TYPES.EXECUTE_DECISION) {
     assertGameStarted(state.gameFlow);
 
-    return applyGameFlowResult(Engine.executeGameRewardChoice({
+    return applyGameFlowResult(Engine.executeGameDecision({
       gameFlow: state.gameFlow,
-      action: action.action,
+      action: { id: action.actionId },
     }));
   }
 
@@ -82,8 +82,8 @@ export function useGameEngine() {
     turnState,
     currentPlayer: gameState ? Engine.getCurrentPlayer(gameState) : null,
     availableActions: turnState?.availableActions || [],
-    pendingReward: turnState?.pendingReward || null,
-    availableRewardActions: turnState?.availableRewardActions || [],
+    pendingDecision: turnState?.pendingDecision || null,
+    availableDecisionActions: turnState?.availableDecisionActions || [],
     lastEvents,
     startGame({ gameState: readyGameState }) {
       dispatch({ type: ACTION_TYPES.START_GAME, gameState: readyGameState });
@@ -94,8 +94,8 @@ export function useGameEngine() {
     executeAction(action, choice) {
       dispatch({ type: ACTION_TYPES.EXECUTE_ACTION, action, choice });
     },
-    executeRewardChoice(action) {
-      dispatch({ type: ACTION_TYPES.EXECUTE_REWARD_CHOICE, action });
+    executeDecision(actionId) {
+      dispatch({ type: ACTION_TYPES.EXECUTE_DECISION, actionId });
     },
   };
 }

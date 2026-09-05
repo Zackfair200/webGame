@@ -1,7 +1,7 @@
 export const TURN_PHASES = Object.freeze({
   WAITING_FOR_ROLL: 'waitingForRoll',
   WAITING_FOR_ACTION: 'waitingForAction',
-  WAITING_FOR_REWARD_CHOICE: 'waitingForRewardChoice',
+  WAITING_FOR_DECISION: 'waitingForDecision',
   ENDED: 'ended',
 });
 

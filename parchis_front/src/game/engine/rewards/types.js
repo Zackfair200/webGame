@@ -1,11 +1,14 @@
 export const REWARD_TYPES = Object.freeze({
-  CAPTURE_REWARD: 'captureReward',
-  GOAL_REWARD: 'goalReward',
+  MOVEMENT_REWARD: 'movementReward',
+});
+
+export const REWARD_SOURCE_TYPES = Object.freeze({
+  CAPTURE: 'capture',
+  GOAL: 'goal',
 });
 
 export const REWARD_ACTION_TYPES = Object.freeze({
-  CAPTURE_REWARD_MOVEMENT: 'captureRewardMovement',
-  GOAL_REWARD_MOVEMENT: 'goalRewardMovement',
+  MOVEMENT_REWARD_MOVEMENT: 'movementRewardMovement',
   LOSE_REWARD: 'loseReward',
 });
 

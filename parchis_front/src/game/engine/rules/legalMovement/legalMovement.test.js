@@ -4,21 +4,67 @@ import {
   FACTION_IDS,
   LEGAL_MOVEMENT_FAILURE_REASONS,
   MOVEMENT_FAILURE_REASONS,
+  MOVEMENT_TYPES,
   POSITION_TYPES,
   ROUTES_BY_FACTION,
   createCommonPosition,
   createFinalLanePosition,
   createGoalPosition,
   createHomePosition,
+  createRulesContext,
   evaluateMovement,
 } from '../../index';
 
-function createCharacter({ id, factionId, position }) {
+function createCharacter({ id, characterId, factionId, position }) {
   return {
     id,
+    ...(characterId ? { characterId } : {}),
     factionId,
     position,
   };
+}
+
+function createState(characters) {
+  return {
+    players: Object.values(FACTION_IDS).map((factionId) => ({
+      id: `player-${factionId}`,
+      factionId,
+      characters: characters.filter((character) => character.factionId === factionId),
+    })),
+    characterStatesById: {},
+    factionStatesById: {},
+    globalEffects: [],
+    terrainEffectsByPositionKey: {},
+  };
+}
+
+function evaluateAbilityMovement({
+  characterId,
+  characters,
+  steps,
+  movementType = MOVEMENT_TYPES.NORMAL,
+}) {
+  const state = createState(characters);
+
+  return evaluateMovement({
+    characterId,
+    steps,
+    characters,
+    rulesContext: createRulesContext({
+      gameState: state,
+      actorCharacterId: characterId,
+      movementType,
+    }),
+  });
+}
+
+function evaluateRangerMovement({ characters, steps, movementType = MOVEMENT_TYPES.NORMAL }) {
+  return evaluateAbilityMovement({
+    characterId: 'green.ranger',
+    characters,
+    steps,
+    movementType,
+  });
 }
 
 function expectLegalMovement(
@@ -80,19 +126,24 @@ describe('evaluateMovement', () => {
       );
     });
 
-    test('allows movement from common into final lane', () => {
+    test.each([
+      [FACTION_IDS.YELLOW, 38],
+      [FACTION_IDS.GREEN, 21],
+      [FACTION_IDS.BLUE, 55],
+      [FACTION_IDS.RED, 4],
+    ])('allows %s movement from canonical entry %i into final lane', (factionId, entrySquare) => {
       const characters = [
-        createCharacter({ id: 'yellow.1', factionId: FACTION_IDS.YELLOW, position: createCommonPosition(4) }),
+        createCharacter({ id: `${factionId}.1`, factionId, position: createCommonPosition(entrySquare) }),
       ];
 
       expectLegalMovement(
-        evaluateMovement({ characterId: 'yellow.1', steps: 3, characters }),
+        evaluateMovement({ characterId: `${factionId}.1`, steps: 3, characters }),
         {
-          destination: createFinalLanePosition(FACTION_IDS.YELLOW, 3),
+          destination: createFinalLanePosition(factionId, 3),
           path: [
-            createFinalLanePosition(FACTION_IDS.YELLOW, 1),
-            createFinalLanePosition(FACTION_IDS.YELLOW, 2),
-            createFinalLanePosition(FACTION_IDS.YELLOW, 3),
+            createFinalLanePosition(factionId, 1),
+            createFinalLanePosition(factionId, 2),
+            createFinalLanePosition(factionId, 3),
           ],
           steps: 3,
         },
@@ -258,12 +309,12 @@ describe('evaluateMovement', () => {
 
     test('allows safe sharing with one enemy on a start square', () => {
       const characters = [
-        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(3) }),
+        createCharacter({ id: 'yellow.1', factionId: FACTION_IDS.YELLOW, position: createCommonPosition(3) }),
         createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(5) }),
       ];
 
       expectLegalMovement(
-        evaluateMovement({ characterId: 'red.1', steps: 2, characters }),
+        evaluateMovement({ characterId: 'yellow.1', steps: 2, characters }),
         {
           destination: createCommonPosition(5),
           path: [createCommonPosition(4), createCommonPosition(5)],
@@ -457,6 +508,224 @@ describe('evaluateMovement', () => {
           },
         },
       );
+    });
+
+    test('assassin captures one enemy when landing on a safe square', () => {
+      const characters = [
+        createCharacter({
+          id: 'red.assassin',
+          characterId: 'assassin',
+          factionId: FACTION_IDS.RED,
+          position: createCommonPosition(10),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+      ];
+
+      expect(evaluateAbilityMovement({
+        characterId: 'red.assassin',
+        characters,
+        steps: 2,
+      }).outcome).toEqual({
+        type: DESTINATION_OUTCOME_TYPES.CAPTURE,
+        capturedCharacterId: 'blue.1',
+      });
+    });
+
+    test('assassin does not capture an enemy merely passed on a safe square', () => {
+      const characters = [
+        createCharacter({
+          id: 'red.assassin',
+          characterId: 'assassin',
+          factionId: FACTION_IDS.RED,
+          position: createCommonPosition(10),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+      ];
+      const movement = evaluateAbilityMovement({
+        characterId: 'red.assassin',
+        characters,
+        steps: 5,
+      });
+
+      expect(movement.path).toContainEqual(createCommonPosition(12));
+      expect(movement.destination).toEqual(createCommonPosition(15));
+      expect(movement.outcome).toEqual({ type: DESTINATION_OUTCOME_TYPES.EMPTY });
+    });
+
+    test('ranger passes through an intermediate enemy barrier', () => {
+      const characters = [
+        createCharacter({
+          id: 'green.ranger',
+          characterId: 'ranger',
+          factionId: FACTION_IDS.GREEN,
+          position: createCommonPosition(9),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(11) }),
+        createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(11) }),
+      ];
+
+      expect(evaluateRangerMovement({ characters, steps: 4 })).toMatchObject({
+        legal: true,
+        destination: createCommonPosition(13),
+      });
+      expect(characters.slice(1).map((character) => character.position)).toEqual([
+        createCommonPosition(11),
+        createCommonPosition(11),
+      ]);
+    });
+
+    test('assassin remains blocked by an intermediate barrier', () => {
+      const characters = [
+        createCharacter({
+          id: 'red.assassin',
+          characterId: 'assassin',
+          factionId: FACTION_IDS.RED,
+          position: createCommonPosition(9),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+        createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+      ];
+
+      expect(evaluateAbilityMovement({
+        characterId: 'red.assassin',
+        characters,
+        steps: 4,
+      })).toEqual({
+        legal: false,
+        reason: LEGAL_MOVEMENT_FAILURE_REASONS.BARRIER,
+        blockedAt: createCommonPosition(12),
+        pathIndex: 2,
+      });
+    });
+
+    test('assassin remains blocked by a barrier on the safe destination', () => {
+      const characters = [
+        createCharacter({
+          id: 'red.assassin',
+          characterId: 'assassin',
+          factionId: FACTION_IDS.RED,
+          position: createCommonPosition(9),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+        createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+      ];
+
+      expect(evaluateAbilityMovement({
+        characterId: 'red.assassin',
+        characters,
+        steps: 3,
+      })).toEqual({
+        legal: false,
+        reason: LEGAL_MOVEMENT_FAILURE_REASONS.BARRIER,
+        blockedAt: createCommonPosition(12),
+        pathIndex: 2,
+      });
+    });
+
+    test('ranger passes through an intermediate allied barrier', () => {
+      const characters = [
+        createCharacter({
+          id: 'green.ranger',
+          characterId: 'ranger',
+          factionId: FACTION_IDS.GREEN,
+          position: createCommonPosition(9),
+        }),
+        createCharacter({ id: 'green.druid', factionId: FACTION_IDS.GREEN, position: createCommonPosition(11) }),
+        createCharacter({ id: 'green.archer', factionId: FACTION_IDS.GREEN, position: createCommonPosition(11) }),
+      ];
+
+      expect(evaluateRangerMovement({ characters, steps: 4 })).toMatchObject({
+        legal: true,
+        destination: createCommonPosition(13),
+      });
+    });
+
+    test('ranger remains blocked by a barrier at the destination', () => {
+      const characters = [
+        createCharacter({
+          id: 'green.ranger',
+          characterId: 'ranger',
+          factionId: FACTION_IDS.GREEN,
+          position: createCommonPosition(9),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+        createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+      ];
+
+      expect(evaluateRangerMovement({ characters, steps: 3 })).toEqual({
+        legal: false,
+        reason: LEGAL_MOVEMENT_FAILURE_REASONS.BARRIER,
+        blockedAt: createCommonPosition(12),
+        pathIndex: 2,
+      });
+    });
+
+    test('rejects a rulesContext belonging to a different actor', () => {
+      const characters = [
+        createCharacter({
+          id: 'green.ranger',
+          characterId: 'ranger',
+          factionId: FACTION_IDS.GREEN,
+          position: createCommonPosition(9),
+        }),
+        createCharacter({
+          id: 'green.druid',
+          characterId: 'druid',
+          factionId: FACTION_IDS.GREEN,
+          position: createCommonPosition(20),
+        }),
+      ];
+      const state = createState(characters);
+      const rangerContext = createRulesContext({
+        gameState: state,
+        actorCharacterId: 'green.ranger',
+        movementType: MOVEMENT_TYPES.NORMAL,
+      });
+
+      expect(() => evaluateMovement({
+        characterId: 'green.druid',
+        steps: 1,
+        characters,
+        rulesContext: rangerContext,
+      })).toThrow('rulesContext actor must match the character being evaluated.');
+    });
+
+    test('ranger still uses the normal capture rule after crossing a barrier', () => {
+      const characters = [
+        createCharacter({
+          id: 'green.ranger',
+          characterId: 'ranger',
+          factionId: FACTION_IDS.GREEN,
+          position: createCommonPosition(9),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(11) }),
+        createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(11) }),
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(13) }),
+      ];
+
+      expect(evaluateRangerMovement({ characters, steps: 4 }).outcome).toEqual({
+        type: DESTINATION_OUTCOME_TYPES.CAPTURE,
+        capturedCharacterId: 'red.1',
+      });
+    });
+
+    test('ranger still uses the normal SAFE rule after crossing a barrier', () => {
+      const characters = [
+        createCharacter({
+          id: 'green.ranger',
+          characterId: 'ranger',
+          factionId: FACTION_IDS.GREEN,
+          position: createCommonPosition(9),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(10) }),
+        createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(10) }),
+        createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(12) }),
+      ];
+
+      expect(evaluateRangerMovement({ characters, steps: 3 }).outcome).toEqual({
+        type: DESTINATION_OUTCOME_TYPES.SAFE_SHARE,
+        occupantCharacterId: 'red.1',
+      });
     });
   });
 

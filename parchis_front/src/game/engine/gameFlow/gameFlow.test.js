@@ -3,7 +3,11 @@ import {
   EXECUTION_EVENT_TYPES,
   FACTION_IDS,
   GAME_PHASES,
+  MOVEMENT_SOURCE_TYPES,
+  MOVEMENT_TYPES,
   POSITION_TYPES,
+  REWARD_ACTION_TYPES,
+  REWARD_TYPES,
   TURN_PHASES,
   createCommonPosition,
   createFinalLanePosition,
@@ -11,7 +15,7 @@ import {
   createGoalPosition,
   createHomePosition,
   executeGameAction,
-  executeGameRewardChoice,
+  executeGameDecision,
   getWinningPlayerId,
   registerGameRoll,
 } from '../index';
@@ -65,8 +69,8 @@ function getActionForCharacter(gameFlow, characterId) {
   return gameFlow.turnState.availableActions.find((action) => action.characterId === characterId);
 }
 
-function getRewardActionForCharacter(gameFlow, characterId) {
-  return gameFlow.turnState.availableRewardActions.find((action) => action.characterId === characterId);
+function getDecisionActionForCharacter(gameFlow, characterId) {
+  return gameFlow.turnState.availableDecisionActions.find((action) => action.characterId === characterId);
 }
 
 describe('game flow', () => {
@@ -275,7 +279,7 @@ describe('game flow', () => {
           positions: [
             createFinalLanePosition(FACTION_IDS.RED, 7),
             createCommonPosition(10),
-            createCommonPosition(20),
+            createCommonPosition(54),
           ],
         }),
         createPlayer({ id: 'player-2', factionId: FACTION_IDS.BLUE }),
@@ -289,11 +293,11 @@ describe('game flow', () => {
     });
 
     expect(waitingChoice.gameState.currentPlayerId).toBe('player-1');
-    expect(waitingChoice.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_REWARD_CHOICE);
+    expect(waitingChoice.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_DECISION);
 
-    const resolved = executeGameRewardChoice({
+    const resolved = executeGameDecision({
       gameFlow: waitingChoice,
-      action: getRewardActionForCharacter(waitingChoice, 'red.2'),
+      action: getDecisionActionForCharacter(waitingChoice, 'red.2'),
     });
 
     expect(getCharacter(resolved.gameState, 'red.2').position).toEqual(createCommonPosition(20));
@@ -309,7 +313,7 @@ describe('game flow', () => {
           positions: [
             createFinalLanePosition(FACTION_IDS.RED, 2),
             createCommonPosition(10),
-            createCommonPosition(20),
+            createCommonPosition(54),
           ],
         }),
         createPlayer({ id: 'player-2', factionId: FACTION_IDS.BLUE }),
@@ -323,7 +327,7 @@ describe('game flow', () => {
     });
 
     expect(waitingChoice.gameState.currentPlayerId).toBe('player-1');
-    expect(waitingChoice.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_REWARD_CHOICE);
+    expect(waitingChoice.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_DECISION);
     expect(() => registerGameRoll({ gameFlow: waitingChoice, roll: 1 })).toThrow(
       'Turn phase must be waitingForRoll.',
     );
@@ -331,9 +335,9 @@ describe('game flow', () => {
       'Turn phase must be waitingForAction.',
     );
 
-    const resolved = executeGameRewardChoice({
+    const resolved = executeGameDecision({
       gameFlow: waitingChoice,
-      action: getRewardActionForCharacter(waitingChoice, 'red.2'),
+      action: getDecisionActionForCharacter(waitingChoice, 'red.2'),
     });
 
     expect(getCharacter(resolved.gameState, 'red.2').position).toEqual(createCommonPosition(20));
@@ -355,6 +359,68 @@ describe('game flow', () => {
     expect(getCharacter(result.gameState, 'red.1').position).toEqual(createCommonPosition(31));
     expect(getCharacter(result.gameState, 'blue.1').position).toEqual(createHomePosition());
     expect(result.gameState.currentPlayerId).toBe('player-2');
+  });
+
+  test('blue normal capture of red automatically applies exact +20 capture reward', () => {
+    const gameState = createReadyGame({
+      players: [
+        createPlayer({ id: 'blue-player', factionId: FACTION_IDS.BLUE, positions: [createCommonPosition(58)] }),
+        createPlayer({ id: 'red-player', factionId: FACTION_IDS.RED, positions: [createCommonPosition(61)] }),
+      ],
+      turnOrder: ['blue-player', 'red-player'],
+      currentPlayerId: 'blue-player',
+    });
+    const flow = createGameFlow({ gameState });
+    const rolled = registerGameRoll({ gameFlow: flow, roll: 3 });
+    const result = executeGameAction({
+      gameFlow: rolled,
+      action: getActionForCharacter(rolled, 'blue.1'),
+    });
+
+    expect(getCharacter(result.gameState, 'red.1').position).toEqual(createHomePosition());
+    expect(getCharacter(result.gameState, 'blue.1').position).toEqual(createCommonPosition(13));
+expect(result.events).toEqual([
+      {
+        type: EXECUTION_EVENT_TYPES.CHARACTER_MOVED,
+        characterId: 'blue.1',
+        factionId: FACTION_IDS.BLUE,
+        from: createCommonPosition(58),
+        to: createCommonPosition(61),
+        previousPosition: createCommonPosition(60),
+        steps: 3,
+        actionType: EXECUTABLE_ACTION_TYPES.NORMAL_MOVEMENT,
+        movementType: MOVEMENT_TYPES.NORMAL,
+        source: { type: MOVEMENT_SOURCE_TYPES.DICE, roll: 3 },
+      },
+      {
+        type: EXECUTION_EVENT_TYPES.CHARACTER_CAPTURED,
+        characterId: 'blue.1',
+        factionId: FACTION_IDS.BLUE,
+        capturedCharacterId: 'red.1',
+        actionType: EXECUTABLE_ACTION_TYPES.NORMAL_MOVEMENT,
+        movementType: MOVEMENT_TYPES.NORMAL,
+        source: { type: MOVEMENT_SOURCE_TYPES.DICE, roll: 3 },
+      },
+      {
+        type: EXECUTION_EVENT_TYPES.CHARACTER_MOVED,
+        characterId: 'blue.1',
+        factionId: FACTION_IDS.BLUE,
+        from: createCommonPosition(61),
+        to: createCommonPosition(13),
+        previousPosition: createCommonPosition(12),
+        steps: 20,
+        actionType: REWARD_ACTION_TYPES.MOVEMENT_REWARD_MOVEMENT,
+        movementType: MOVEMENT_TYPES.REWARD,
+        source: {
+          type: MOVEMENT_SOURCE_TYPES.REWARD,
+          rewardType: REWARD_TYPES.MOVEMENT_REWARD,
+          rewardSource: { type: 'capture', characterId: 'blue.1' },
+          ownerFactionId: FACTION_IDS.BLUE,
+        },
+      },
+    ]);
+    expect(result.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_ROLL);
+    expect(result.gameState.currentPlayerId).toBe('red-player');
   });
 
   test('winning by normal movement finishes the game without generating the winning +10', () => {
@@ -393,13 +459,13 @@ describe('game flow', () => {
           id: 'player-1',
           factionId: FACTION_IDS.RED,
           positions: [
-            createCommonPosition(20),
+            createCommonPosition(54),
             createGoalPosition(),
             createGoalPosition(),
             createGoalPosition(),
           ],
         }),
-        createPlayer({ id: 'player-2', factionId: FACTION_IDS.BLUE, positions: [createCommonPosition(26)] }),
+        createPlayer({ id: 'player-2', factionId: FACTION_IDS.BLUE, positions: [createCommonPosition(60)] }),
       ],
     });
     const flow = createGameFlow({ gameState });
@@ -427,7 +493,7 @@ describe('game flow', () => {
             createFinalLanePosition(FACTION_IDS.RED, 7),
             createGoalPosition(),
             createGoalPosition(),
-            createCommonPosition(36),
+            createCommonPosition(2),
           ],
         }),
         createPlayer({ id: 'player-2', factionId: FACTION_IDS.BLUE }),
@@ -493,7 +559,7 @@ describe('game flow', () => {
 
     expect(() => registerGameRoll({ gameFlow: finished, roll: 1 })).toThrow('Cannot operate on a finished game.');
     expect(() => executeGameAction({ gameFlow: finished, action: {} })).toThrow('Cannot operate on a finished game.');
-    expect(() => executeGameRewardChoice({ gameFlow: finished, action: {} })).toThrow('Cannot operate on a finished game.');
+    expect(() => executeGameDecision({ gameFlow: finished, action: {} })).toThrow('Cannot operate on a finished game.');
     expect(() => createGameFlow({ gameState: finished.gameState })).toThrow(
       'createGameFlow requires a ready gameState.',
     );

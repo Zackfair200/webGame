@@ -1,7 +1,11 @@
 import { getFactionIds } from '../../factions/factions';
+import { canPassThroughIntermediateBarrier } from '../../abilities/abilityModifiers';
 import { calculateMovementPath } from '../../movement/movement';
 import { assertValidMovementSteps } from '../../movement/validation';
 import { assertCharactersArray } from '../../occupancy/occupancy';
+import { assertRulesContextActor } from '../../rulesContext/rulesContext';
+import { findFirstInterruptingTerrainEffect } from '../../effects/terrainEffects';
+import { resolveMovementStepsFromStatuses } from '../../effects/characterStatuses';
 import { checkPathBlockedByBarrier } from '../barriers/barriers';
 import { evaluateDestination } from '../destinationRules/destinationRules';
 import { POSITION_TYPES, isValidPosition } from '../../state/positions';
@@ -38,10 +42,12 @@ function assertCharacterPositionCanUseFaction(position, factionId) {
   }
 }
 
-export function evaluateMovement({ characterId, steps, characters }) {
+export function evaluateMovement({ characterId, steps, characters, rulesContext = null }) {
   assertCharactersArray(characters);
 
   const character = getCharacterById({ characterId, characters });
+
+  assertRulesContextActor({ actor: character, rulesContext });
 
   assertValidCharacterFaction(character.factionId);
 
@@ -66,10 +72,11 @@ export function evaluateMovement({ characterId, steps, characters }) {
     };
   }
 
+  const stepResolution = resolveMovementStepsFromStatuses({ steps, rulesContext });
   const pathResult = calculateMovementPath({
     factionId: character.factionId,
     from: character.position,
-    steps,
+    steps: stepResolution.effectiveSteps,
   });
 
   if (!pathResult.ok) {
@@ -79,36 +86,95 @@ export function evaluateMovement({ characterId, steps, characters }) {
     };
   }
 
-  const barrierResult = checkPathBlockedByBarrier({
-    path: pathResult.path,
+  const intendedPath = pathResult.path;
+  const intendedBarrierResult = checkPathBlockedByBarrier({
+    path: intendedPath,
     characters,
     movingCharacterId: characterId,
+    canPassBarrier: ({ pathIndex, pathLength }) => canPassThroughIntermediateBarrier({
+      rulesContext,
+      pathIndex,
+      pathLength,
+    }),
   });
 
-  if (barrierResult.blocked) {
+  if (intendedBarrierResult.blocked) {
     return {
       legal: false,
       reason: LEGAL_MOVEMENT_FAILURE_REASONS.BARRIER,
-      blockedAt: barrierResult.position,
-      pathIndex: barrierResult.pathIndex,
+      blockedAt: intendedBarrierResult.position,
+      pathIndex: intendedBarrierResult.pathIndex,
     };
   }
 
-  const destination = pathResult.path[pathResult.path.length - 1];
-  const destinationResult = evaluateDestination({
+  const intendedDestinationResult = evaluateDestination({
     movingCharacterId: characterId,
-    destination,
+    destination: intendedPath[intendedPath.length - 1],
     characters,
+    rulesContext,
   });
 
-  if (!destinationResult.legal) {
-    return destinationResult;
+  if (!intendedDestinationResult.legal) {
+    return intendedDestinationResult;
+  }
+
+  const terrainTrigger = findFirstInterruptingTerrainEffect({
+    path: intendedPath,
+    rulesContext,
+  });
+
+  if (!terrainTrigger) {
+    return {
+      legal: true,
+      destination: intendedDestinationResult.destination,
+      path: intendedPath,
+      outcome: intendedDestinationResult.outcome,
+      ...(stepResolution.usedStatusEffectIds.length > 0
+        ? { usedStatusEffectIds: stepResolution.usedStatusEffectIds }
+        : {}),
+    };
+  }
+
+  const effectivePath = intendedPath.slice(0, terrainTrigger.pathIndex + 1);
+  const effectiveBarrierResult = checkPathBlockedByBarrier({
+    path: effectivePath,
+    characters,
+    movingCharacterId: characterId,
+    canPassBarrier: ({ pathIndex, pathLength }) => canPassThroughIntermediateBarrier({
+      rulesContext,
+      pathIndex,
+      pathLength,
+    }),
+  });
+
+  if (effectiveBarrierResult.blocked) {
+    return {
+      legal: false,
+      reason: LEGAL_MOVEMENT_FAILURE_REASONS.BARRIER,
+      blockedAt: effectiveBarrierResult.position,
+      pathIndex: effectiveBarrierResult.pathIndex,
+    };
+  }
+
+  const effectiveDestinationResult = evaluateDestination({
+    movingCharacterId: characterId,
+    destination: effectivePath[effectivePath.length - 1],
+    characters,
+    rulesContext,
+  });
+
+  if (!effectiveDestinationResult.legal) {
+    return effectiveDestinationResult;
   }
 
   return {
     legal: true,
-    destination: destinationResult.destination,
-    path: pathResult.path,
-    outcome: destinationResult.outcome,
+    destination: effectiveDestinationResult.destination,
+    path: effectivePath,
+    outcome: effectiveDestinationResult.outcome,
+    terrainTriggers: [terrainTrigger],
+    ...(stepResolution.usedStatusEffectIds.length > 0
+      ? { usedStatusEffectIds: stepResolution.usedStatusEffectIds }
+      : {}),
   };
 }

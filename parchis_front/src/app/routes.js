@@ -5,6 +5,7 @@ import RegisterPage from '../auth/RegisterPage';
 import DashboardPage from '../dashboard/DashboardPage';
 import GamePage from '../game/GamePage';
 import DevGamePage from '../game/DevGamePage';
+import ClassicBoardGeometryPreview from '../game/board/prototypes/ClassicBoardGeometryPreview';
 import PrivateRoute from '../auth/PrivateRoute';
 
 function AppRoutes() {
@@ -29,6 +30,7 @@ function AppRoutes() {
         }
       />
       <Route path="/dev_game" element={<DevGamePage />} />
+      <Route path="/dev_board_geometry" element={<ClassicBoardGeometryPreview />} />
       <Route path="/" element={<LoginPage />} />
     </Routes>
   );

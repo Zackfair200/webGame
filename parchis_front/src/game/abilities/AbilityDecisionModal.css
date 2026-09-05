@@ -1,0 +1,275 @@
+.ability-decision-overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: clamp(16px, 4vw, 40px);
+  background: rgba(2, 7, 15, 0.74);
+  backdrop-filter: blur(9px) saturate(0.82);
+  animation: ability-overlay-enter 180ms ease-out both;
+}
+
+.ability-decision {
+  --ability-accent: #8da2b8;
+  --ability-accent-bright: #d7e1eb;
+  --ability-glow: rgba(141, 162, 184, 0.2);
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  width: min(100%, 430px);
+  max-height: min(720px, calc(100vh - 32px));
+  border: 1px solid color-mix(in srgb, var(--ability-accent) 54%, transparent);
+  border-radius: 28px;
+  padding: clamp(24px, 5vw, 38px);
+  overflow: auto;
+  color: #eef7f2;
+  background:
+    linear-gradient(145deg, rgba(17, 29, 34, 0.98), rgba(5, 12, 18, 0.99));
+  box-shadow:
+    0 34px 100px rgba(0, 0, 0, 0.58),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 44px var(--ability-glow);
+  text-align: center;
+  animation: ability-panel-enter 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.ability-decision--nature {
+  --ability-accent: #5fb879;
+  --ability-accent-bright: #b8efc7;
+  --ability-glow: rgba(46, 160, 84, 0.2);
+}
+
+.ability-decision--frost {
+  --ability-accent: #52bfe5;
+  --ability-accent-bright: #d9f7ff;
+  --ability-glow: rgba(82, 191, 229, 0.24);
+}
+
+.ability-decision__aura {
+  position: absolute;
+  z-index: -1;
+  top: -120px;
+  left: 50%;
+  width: 300px;
+  height: 260px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, var(--ability-glow), transparent 68%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+.ability-decision__eyebrow {
+  margin: 0 0 18px;
+  color: var(--ability-accent-bright);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.ability-decision__portrait {
+  display: grid;
+  place-items: center;
+  width: clamp(86px, 22vw, 108px);
+  aspect-ratio: 1;
+  border: 3px solid var(--ability-accent);
+  border-radius: 24px;
+  margin: 0 auto 15px;
+  overflow: hidden;
+  color: var(--ability-accent-bright);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.38),
+    0 0 28px var(--ability-glow);
+  font-size: 1.8rem;
+  font-weight: 900;
+}
+
+.ability-decision__portrait img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.ability-decision__character {
+  margin: 0 0 6px;
+  color: #aab8b2;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.ability-decision__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: var(--ability-accent-bright);
+}
+
+.ability-decision__title-row h2 {
+  margin: 0;
+  color: #f6fff8;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.65rem, 7vw, 2.15rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.ability-decision__description {
+  max-width: 34ch;
+  margin: 13px auto 21px;
+  color: #bdcac3;
+  font-size: 0.96rem;
+  line-height: 1.58;
+}
+
+.ability-decision__charges {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  border-block: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 22px;
+  padding: 14px 3px;
+  text-align: left;
+}
+
+.ability-decision__charges > span {
+  color: #899b92;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ability-decision__charges strong {
+  color: var(--ability-accent-bright);
+  font-size: 0.78rem;
+}
+
+.ability-decision__charge-track {
+  display: flex;
+  gap: 8px;
+}
+
+.ability-decision__charge {
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  border: 2px solid color-mix(in srgb, var(--ability-accent-bright) 46%, transparent);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.ability-decision__charge--available {
+  border-color: var(--ability-accent-bright);
+  background: var(--ability-accent);
+  box-shadow: 0 0 12px var(--ability-glow);
+}
+
+.ability-decision__actions {
+  display: grid;
+  gap: 12px;
+}
+
+.ability-decision__primary-action,
+.ability-decision__skip-action {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ability-decision__primary-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 52px;
+  border-radius: 16px;
+  padding: 13px 20px;
+  color: #07150d;
+  background: linear-gradient(135deg, var(--ability-accent-bright), var(--ability-accent));
+  box-shadow: 0 13px 30px var(--ability-glow);
+  font-weight: 900;
+  letter-spacing: 0.025em;
+  transition: transform 150ms ease, filter 150ms ease, box-shadow 150ms ease;
+}
+
+.ability-decision__primary-action:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 16px 36px var(--ability-glow);
+}
+
+.ability-decision__skip-action {
+  justify-self: center;
+  border-radius: 9px;
+  padding: 8px 18px;
+  color: #aab8b2;
+  background: transparent;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgba(170, 184, 178, 0.38);
+  text-underline-offset: 4px;
+}
+
+.ability-decision__skip-action:hover {
+  color: #edf7f0;
+}
+
+.ability-decision__primary-action:focus-visible,
+.ability-decision__skip-action:focus-visible {
+  outline: 3px solid #e8fff0;
+  outline-offset: 3px;
+}
+
+@keyframes ability-overlay-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ability-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 480px) {
+  .ability-decision-overlay {
+    place-items: end center;
+    padding: 12px;
+  }
+
+  .ability-decision {
+    max-height: calc(100vh - 24px);
+    border-radius: 24px;
+    padding: 22px 20px 20px;
+  }
+
+  .ability-decision__description {
+    margin-bottom: 17px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ability-decision-overlay,
+  .ability-decision {
+    animation: none;
+  }
+
+  .ability-decision__primary-action {
+    transition: none;
+  }
+}

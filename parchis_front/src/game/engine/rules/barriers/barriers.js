@@ -71,7 +71,12 @@ export function getBarriersForFaction({ factionId, characters }) {
     .map(createBarrierResult);
 }
 
-export function checkPathBlockedByBarrier({ path, characters, movingCharacterId }) {
+export function checkPathBlockedByBarrier({
+  path,
+  characters,
+  movingCharacterId,
+  canPassBarrier = null,
+}) {
   if (!Array.isArray(path)) {
     throw new Error('Path is required to check barrier blocking.');
   }
@@ -103,6 +108,17 @@ export function checkPathBlockedByBarrier({ path, characters, movingCharacterId 
     });
 
     if (barrier.exists) {
+      const isDestination = pathIndex === path.length - 1;
+
+      if (!isDestination && canPassBarrier?.({
+        barrier: createBarrierResult(barrier),
+        pathIndex,
+        pathLength: path.length,
+        isDestination,
+      })) {
+        continue;
+      }
+
       return {
         blocked: true,
         reason: 'barrier',

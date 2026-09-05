@@ -1,19 +1,27 @@
 import {
+  DESTINATION_OUTCOME_TYPES,
   EXECUTABLE_ACTION_TYPES,
   EXECUTION_EVENT_TYPES,
   FACTION_IDS,
+  MOVEMENT_SOURCE_TYPES,
+  MOVEMENT_TYPES,
   POSITION_TYPES,
+  REWARD_SOURCE_TYPES,
+  REWARD_TYPES,
+  SAFE_SQUARES,
   START_SQUARE_BY_FACTION,
   createCommonPosition,
   createFinalLanePosition,
   createGoalPosition,
   createHomePosition,
+  deriveRewardsFromEvents,
   executeAction,
 } from '../index';
 
-function createCharacter({ id, factionId, position }) {
+function createCharacter({ id, characterId, factionId, position }) {
   return {
     id,
+    ...(characterId ? { characterId } : {}),
     factionId,
     position,
   };
@@ -109,10 +117,14 @@ describe('executeAction', () => {
         {
           type: EXECUTION_EVENT_TYPES.CHARACTER_MOVED,
           characterId: 'red.1',
+          factionId: FACTION_IDS.RED,
           from: createCommonPosition(10),
           to: destination,
+          previousPosition: createCommonPosition(9 + roll),
           steps: roll,
           actionType: EXECUTABLE_ACTION_TYPES.NORMAL_MOVEMENT,
+          movementType: MOVEMENT_TYPES.NORMAL,
+          source: { type: MOVEMENT_SOURCE_TYPES.DICE, roll },
         },
       ]);
     });
@@ -211,6 +223,102 @@ describe('executeAction', () => {
       ]);
     });
 
+    test('revalidates and executes assassin capture on a safe destination', () => {
+      const state = createState([
+        createCharacter({
+          id: 'red.assassin',
+          characterId: 'assassin',
+          factionId: FACTION_IDS.RED,
+          position: createCommonPosition(10),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+      ]);
+
+      const result = executeAction({
+        state,
+        factionId: FACTION_IDS.RED,
+        roll: 2,
+        action: normalMovementAction('red.assassin', {
+          legal: true,
+          destination: createCommonPosition(12),
+          outcome: { type: DESTINATION_OUTCOME_TYPES.SAFE_SHARE, occupantCharacterId: 'blue.1' },
+        }),
+      });
+
+      expect(getCharacter(result.state, 'red.assassin').position).toEqual(createCommonPosition(12));
+      expect(getCharacter(result.state, 'blue.1').position).toEqual(createHomePosition());
+      expect(SAFE_SQUARES).toContain(12);
+      expect(result.events).toContainEqual(expect.objectContaining({
+        type: EXECUTION_EVENT_TYPES.CHARACTER_CAPTURED,
+        characterId: 'red.assassin',
+        factionId: FACTION_IDS.RED,
+        capturedCharacterId: 'blue.1',
+        movementType: MOVEMENT_TYPES.NORMAL,
+      }));
+      expect(deriveRewardsFromEvents({ events: result.events })).toEqual([
+        {
+          type: REWARD_TYPES.MOVEMENT_REWARD,
+          source: {
+            type: REWARD_SOURCE_TYPES.CAPTURE,
+            characterId: 'red.assassin',
+          },
+          ownerFactionId: FACTION_IDS.RED,
+          steps: 20,
+          excludedCharacterIds: [],
+        },
+      ]);
+    });
+
+    test('assassin does not capture an enemy passed on a safe square', () => {
+      const state = createState([
+        createCharacter({
+          id: 'red.assassin',
+          characterId: 'assassin',
+          factionId: FACTION_IDS.RED,
+          position: createCommonPosition(10),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(12) }),
+      ]);
+
+      const result = executeAction({
+        state,
+        factionId: FACTION_IDS.RED,
+        roll: 5,
+        action: normalMovementAction('red.assassin'),
+      });
+
+      expect(getCharacter(result.state, 'red.assassin').position).toEqual(createCommonPosition(15));
+      expect(getCharacter(result.state, 'blue.1').position).toEqual(createCommonPosition(12));
+      expect(result.events).not.toContainEqual(expect.objectContaining({
+        type: EXECUTION_EVENT_TYPES.CHARACTER_CAPTURED,
+      }));
+    });
+
+    test('assassin preserves ordinary capture on a non-safe destination', () => {
+      const state = createState([
+        createCharacter({
+          id: 'red.assassin',
+          characterId: 'assassin',
+          factionId: FACTION_IDS.RED,
+          position: createCommonPosition(8),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(10) }),
+      ]);
+
+      const result = executeAction({
+        state,
+        factionId: FACTION_IDS.RED,
+        roll: 2,
+        action: normalMovementAction('red.assassin'),
+      });
+
+      expect(getCharacter(result.state, 'blue.1').position).toEqual(createHomePosition());
+      expect(result.events).toContainEqual(expect.objectContaining({
+        type: EXECUTION_EVENT_TYPES.CHARACTER_CAPTURED,
+        capturedCharacterId: 'blue.1',
+      }));
+    });
+
     test('uses recalculated capture outcome instead of the action movement snapshot', () => {
       const state = createState([
         createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(8) }),
@@ -232,11 +340,12 @@ describe('executeAction', () => {
       expect(getCharacter(result.state, 'red.1').position).toEqual(createCommonPosition(10));
       expect(getCharacter(result.state, 'blue.1').position).toEqual(createHomePosition());
       expect(getCharacter(result.state, 'green.1').position).toEqual(createCommonPosition(30));
-      expect(result.events).toContainEqual({
+      expect(result.events).toContainEqual(expect.objectContaining({
         type: EXECUTION_EVENT_TYPES.CHARACTER_CAPTURED,
         characterId: 'red.1',
+        factionId: FACTION_IDS.RED,
         capturedCharacterId: 'blue.1',
-      });
+      }));
       expectEventsWithoutRewards(result.events);
     });
 
@@ -257,10 +366,11 @@ describe('executeAction', () => {
       });
 
       expect(getCharacter(result.state, 'red.1').position).toEqual(createGoalPosition());
-      expect(result.events).toContainEqual({
+      expect(result.events).toContainEqual(expect.objectContaining({
         type: EXECUTION_EVENT_TYPES.CHARACTER_REACHED_GOAL,
         characterId: 'red.1',
-      });
+        factionId: FACTION_IDS.RED,
+      }));
       expectEventsWithoutRewards(result.events);
     });
   });
@@ -318,6 +428,32 @@ describe('executeAction', () => {
           from: createHomePosition(),
           to: getStartPosition(FACTION_IDS.RED),
         },
+      ]);
+    });
+
+    test('assassin EXIT_HOME still shares the safe start square without capturing', () => {
+      const start = getStartPosition(FACTION_IDS.RED);
+      const state = createState([
+        createCharacter({
+          id: 'red.assassin',
+          characterId: 'assassin',
+          factionId: FACTION_IDS.RED,
+          position: createHomePosition(),
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: start }),
+      ]);
+
+      const result = executeAction({
+        state,
+        factionId: FACTION_IDS.RED,
+        roll: 5,
+        action: exitHomeAction('red.assassin'),
+      });
+
+      expect(getCharacter(result.state, 'red.assassin').position).toEqual(start);
+      expect(getCharacter(result.state, 'blue.1').position).toEqual(start);
+      expect(result.events.map((event) => event.type)).toEqual([
+        EXECUTION_EVENT_TYPES.CHARACTER_EXITED_HOME,
       ]);
     });
 
@@ -495,11 +631,12 @@ describe('executeAction', () => {
         EXECUTION_EVENT_TYPES.CHARACTER_CAPTURED,
         EXECUTION_EVENT_TYPES.BARRIER_BROKEN,
       ]);
-      expect(result.events).toContainEqual({
+      expect(result.events).toContainEqual(expect.objectContaining({
         type: EXECUTION_EVENT_TYPES.CHARACTER_CAPTURED,
         characterId: 'red.1',
+        factionId: FACTION_IDS.RED,
         capturedCharacterId: 'blue.1',
-      });
+      }));
       expect(result.events).toContainEqual({
         type: EXECUTION_EVENT_TYPES.BARRIER_BROKEN,
         characterId: 'red.1',
@@ -536,10 +673,11 @@ describe('executeAction', () => {
         EXECUTION_EVENT_TYPES.CHARACTER_REACHED_GOAL,
         EXECUTION_EVENT_TYPES.BARRIER_BROKEN,
       ]);
-      expect(result.events).toContainEqual({
+      expect(result.events).toContainEqual(expect.objectContaining({
         type: EXECUTION_EVENT_TYPES.CHARACTER_REACHED_GOAL,
         characterId: 'red.1',
-      });
+        factionId: FACTION_IDS.RED,
+      }));
       expect(result.events).toContainEqual({
         type: EXECUTION_EVENT_TYPES.BARRIER_BROKEN,
         characterId: 'red.1',

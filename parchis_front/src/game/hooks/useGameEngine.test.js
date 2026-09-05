@@ -64,8 +64,8 @@ describe('useGameEngine', () => {
     expect(result.current.turnState).toBe(null);
     expect(result.current.currentPlayer).toBe(null);
     expect(result.current.availableActions).toEqual([]);
-    expect(result.current.pendingReward).toBe(null);
-    expect(result.current.availableRewardActions).toEqual([]);
+    expect(result.current.pendingDecision).toBe(null);
+    expect(result.current.availableDecisionActions).toEqual([]);
     expect(result.current.lastEvents).toEqual([]);
   });
 
@@ -89,15 +89,15 @@ describe('useGameEngine', () => {
     expect(result.current.turnState.factionId).toBe('blue');
     expect(result.current.currentPlayer.id).toBe('player-b');
     expect(result.current.availableActions).toEqual([]);
-    expect(result.current.pendingReward).toBe(null);
-    expect(result.current.availableRewardActions).toEqual([]);
+    expect(result.current.pendingDecision).toBe(null);
+    expect(result.current.availableDecisionActions).toEqual([]);
     expect(result.current.lastEvents).toEqual([]);
   });
 
   test.each([
     ['registerRoll', (current) => current.registerRoll(5)],
     ['executeAction', (current) => current.executeAction({ type: EXECUTABLE_ACTION_TYPES.EXIT_HOME })],
-    ['executeRewardChoice', (current) => current.executeRewardChoice({ type: 'reward' })],
+    ['executeDecision', (current) => current.executeDecision('decision-action-id')],
   ])('%s before startGame fails explicitly without creating Game Flow', (_, command) => {
     const { result } = renderHook(() => useGameEngine());
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -268,7 +268,7 @@ describe('useGameEngine', () => {
     expect(result.current.lastEvents).toEqual([]);
   });
 
-  test('executeRewardChoice delegates to the engine instead of handling rewards in React', () => {
+  test('executeDecision delegates to the engine instead of validating decisions in React', () => {
     const { result } = renderHook(() => useGameEngine());
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -277,9 +277,9 @@ describe('useGameEngine', () => {
     try {
       expect(() => {
         act(() => {
-          result.current.executeRewardChoice({ type: 'unknown' });
+          result.current.executeDecision('unknown-decision-action-id');
         });
-      }).toThrow('Turn phase must be waitingForRewardChoice.');
+      }).toThrow('Turn phase must be waitingForDecision.');
     } finally {
       consoleError.mockRestore();
     }

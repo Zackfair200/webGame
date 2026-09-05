@@ -29,12 +29,12 @@ export const CHARACTERS_BY_FACTION = Object.freeze({
     Object.freeze({ id: 'iceMage', name: 'Mago de hielo', factionId: FACTION_IDS.BLUE }),
     Object.freeze({ id: 'hunter', name: 'Cazador', factionId: FACTION_IDS.BLUE }),
     Object.freeze({ id: 'alchemist', name: 'Alquimista', factionId: FACTION_IDS.BLUE }),
-    Object.freeze({ id: 'cleric', name: 'Clérigo', factionId: FACTION_IDS.BLUE }),
+    Object.freeze({ id: 'rogue', name: 'Ladrón', factionId: FACTION_IDS.BLUE }),
   ]),
   [FACTION_IDS.YELLOW]: Object.freeze([
     Object.freeze({ id: 'paladin', name: 'Paladín', factionId: FACTION_IDS.YELLOW }),
     Object.freeze({ id: 'monk', name: 'Monje', factionId: FACTION_IDS.YELLOW }),
-    Object.freeze({ id: 'thief', name: 'Ladrón', factionId: FACTION_IDS.YELLOW }),
+    Object.freeze({ id: 'cleric', name: 'Clérigo', factionId: FACTION_IDS.YELLOW }),
     Object.freeze({ id: 'engineer', name: 'Ingeniero', factionId: FACTION_IDS.YELLOW }),
   ]),
 });

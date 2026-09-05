@@ -1,14 +1,17 @@
 import { EXECUTION_EVENT_TYPES } from '../actions/types';
 import { applyMovementToState } from '../actions/applyMovement';
-import { evaluateMovement } from '../rules/legalMovement/legalMovement';
 import { getCharactersFromState } from '../state/characters';
+import { MOVEMENT_SOURCE_TYPES, MOVEMENT_TYPES } from '../movement/types';
 import {
   REWARD_ACTION_TYPES,
   REWARD_STATUS,
-  REWARD_STEPS,
   REWARD_TYPES,
 } from './types';
 import { getAvailableRewardActions } from './rewardAvailability';
+
+function cloneSource(source) {
+  return source ? { ...source } : source;
+}
 
 function assertRewardAction(action) {
   if (!action || typeof action !== 'object') {
@@ -19,30 +22,26 @@ function assertRewardAction(action) {
     return;
   }
 
+  if (action.type !== REWARD_ACTION_TYPES.MOVEMENT_REWARD_MOVEMENT) {
+    throw new Error(`Unknown reward action type: ${action.type}`);
+  }
+
   if (action.characterId === undefined || action.characterId === null || action.characterId === '') {
     throw new Error('reward action.characterId is required.');
   }
 }
 
-function assertRewardSteps(reward) {
-  if (reward.type === REWARD_TYPES.CAPTURE_REWARD && reward.steps !== REWARD_STEPS.CAPTURE) {
-    throw new Error(`captureReward.steps must be exactly ${REWARD_STEPS.CAPTURE}.`);
-  }
-
-  if (reward.type === REWARD_TYPES.GOAL_REWARD && reward.steps !== REWARD_STEPS.GOAL) {
-    throw new Error(`goalReward.steps must be exactly ${REWARD_STEPS.GOAL}.`);
-  }
-}
-
-function createRewardLostResult({ state, rewardType, characterId, steps, reason }) {
+function createRewardLostResult({ state, reward, reason }) {
   return {
     state,
     events: [
       {
         type: EXECUTION_EVENT_TYPES.REWARD_LOST,
-        rewardType,
-        characterId,
-        steps,
+        rewardType: reward.type,
+        rewardSource: cloneSource(reward.source),
+        ownerFactionId: reward.ownerFactionId,
+        characterId: reward.source.characterId,
+        steps: reward.steps,
         reason,
       },
     ],
@@ -55,59 +54,12 @@ function findAvailableAction({ availableActions, action }) {
   );
 }
 
-function executeCaptureRewardAction({ state, reward, action }) {
-  if (action.type !== REWARD_ACTION_TYPES.CAPTURE_REWARD_MOVEMENT) {
-    throw new Error('Action is not available for this reward.');
-  }
-
-  if (action.characterId !== reward.characterId) {
-    throw new Error('captureReward must be executed by the capturing character.');
-  }
-
-  const characters = getCharactersFromState(state);
-  const movement = evaluateMovement({
-    characterId: reward.characterId,
-    steps: REWARD_STEPS.CAPTURE,
-    characters,
-  });
-
-  if (!movement.legal) {
-    return createRewardLostResult({
-      state,
-      rewardType: REWARD_TYPES.CAPTURE_REWARD,
-      characterId: reward.characterId,
-      steps: REWARD_STEPS.CAPTURE,
-      reason: movement.reason,
-    });
-  }
-
-  return applyMovementToState({
-    state,
-    characters,
-    actionType: REWARD_TYPES.CAPTURE_REWARD,
-    characterId: reward.characterId,
-    movement,
-    steps: REWARD_STEPS.CAPTURE,
-  });
-}
-
-function executeGoalRewardAction({ state, reward, action }) {
-  if (action.type !== REWARD_ACTION_TYPES.GOAL_REWARD_MOVEMENT) {
+function executeMovementRewardAction({ state, reward, action }) {
+  if (action.type !== REWARD_ACTION_TYPES.MOVEMENT_REWARD_MOVEMENT) {
     throw new Error('Action is not available for this reward.');
   }
 
   const availability = getAvailableRewardActions({ state, reward });
-
-  if (availability.status === REWARD_STATUS.LOST) {
-    return createRewardLostResult({
-      state,
-      rewardType: REWARD_TYPES.GOAL_REWARD,
-      characterId: reward.sourceCharacterId,
-      steps: REWARD_STEPS.GOAL,
-      reason: availability.reason,
-    });
-  }
-
   const availableAction = findAvailableAction({
     availableActions: availability.availableActions,
     action,
@@ -122,23 +74,18 @@ function executeGoalRewardAction({ state, reward, action }) {
   return applyMovementToState({
     state,
     characters,
-    actionType: REWARD_TYPES.GOAL_REWARD,
+    actionType: availableAction.type,
+    movementType: MOVEMENT_TYPES.REWARD,
+    source: {
+      type: MOVEMENT_SOURCE_TYPES.REWARD,
+      rewardType: reward.type,
+      rewardSource: cloneSource(reward.source),
+      ownerFactionId: reward.ownerFactionId,
+    },
     characterId: availableAction.characterId,
     movement: availableAction.movement,
-    steps: REWARD_STEPS.GOAL,
+    steps: reward.steps,
   });
-}
-
-function getRewardLostCharacterId(reward) {
-  if (reward.type === REWARD_TYPES.CAPTURE_REWARD) {
-    return reward.characterId;
-  }
-
-  if (reward.type === REWARD_TYPES.GOAL_REWARD) {
-    return reward.sourceCharacterId;
-  }
-
-  throw new Error(`Unknown reward type: ${reward.type}`);
 }
 
 function executeLoseRewardAction({ state, reward }) {
@@ -150,9 +97,7 @@ function executeLoseRewardAction({ state, reward }) {
 
   return createRewardLostResult({
     state,
-    rewardType: reward.type,
-    characterId: getRewardLostCharacterId(reward),
-    steps: reward.steps,
+    reward,
     reason: availability.reason,
   });
 }
@@ -162,19 +107,14 @@ export function executeRewardAction({ state, reward, action }) {
     throw new Error('reward is required.');
   }
 
-  assertRewardSteps(reward);
   assertRewardAction(action);
 
   if (action.type === REWARD_ACTION_TYPES.LOSE_REWARD) {
     return executeLoseRewardAction({ state, reward });
   }
 
-  if (reward.type === REWARD_TYPES.CAPTURE_REWARD) {
-    return executeCaptureRewardAction({ state, reward, action });
-  }
-
-  if (reward.type === REWARD_TYPES.GOAL_REWARD) {
-    return executeGoalRewardAction({ state, reward, action });
+  if (reward.type === REWARD_TYPES.MOVEMENT_REWARD) {
+    return executeMovementRewardAction({ state, reward, action });
   }
 
   throw new Error(`Unknown reward type: ${reward.type}`);

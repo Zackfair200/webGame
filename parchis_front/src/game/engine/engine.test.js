@@ -1,5 +1,6 @@
 import {
   CHARACTERS_BY_FACTION,
+  ABILITY_IDS,
   COMMON_SQUARES,
   FACTION_IDS,
   FACTIONS,
@@ -18,24 +19,24 @@ import {
 const EXPECTED_CHARACTERS_BY_FACTION = {
   [FACTION_IDS.GREEN]: ['Druida', 'Arquero', 'Montaraz', 'Hada'],
   [FACTION_IDS.RED]: ['Mago de fuego', 'Guerrero', 'Herrero', 'Asesino'],
-  [FACTION_IDS.BLUE]: ['Mago de hielo', 'Cazador', 'Alquimista', 'Clérigo'],
-  [FACTION_IDS.YELLOW]: ['Paladín', 'Monje', 'Ladrón', 'Ingeniero'],
+  [FACTION_IDS.BLUE]: ['Mago de hielo', 'Cazador', 'Alquimista', 'Ladrón'],
+  [FACTION_IDS.YELLOW]: ['Paladín', 'Monje', 'Clérigo', 'Ingeniero'],
 };
 
 const EXPECTED_SAFE_SQUARES = [5, 12, 17, 22, 29, 34, 39, 46, 51, 56, 63, 68];
 
 const EXPECTED_START_SQUARES = {
-  [FACTION_IDS.YELLOW]: 5,
-  [FACTION_IDS.BLUE]: 22,
-  [FACTION_IDS.RED]: 39,
-  [FACTION_IDS.GREEN]: 56,
+  [FACTION_IDS.YELLOW]: 39,
+  [FACTION_IDS.GREEN]: 22,
+  [FACTION_IDS.BLUE]: 56,
+  [FACTION_IDS.RED]: 5,
 };
 
 const EXPECTED_FINAL_ENTRY_SQUARES = {
-  [FACTION_IDS.YELLOW]: 4,
-  [FACTION_IDS.BLUE]: 21,
-  [FACTION_IDS.RED]: 38,
-  [FACTION_IDS.GREEN]: 55,
+  [FACTION_IDS.YELLOW]: 38,
+  [FACTION_IDS.GREEN]: 21,
+  [FACTION_IDS.BLUE]: 55,
+  [FACTION_IDS.RED]: 4,
 };
 
 function range(start, end) {
@@ -43,10 +44,10 @@ function range(start, end) {
 }
 
 const EXPECTED_COMMON_ROUTES = {
-  [FACTION_IDS.YELLOW]: [...range(5, 68), ...range(1, 4)],
-  [FACTION_IDS.BLUE]: [...range(22, 68), ...range(1, 21)],
-  [FACTION_IDS.RED]: [...range(39, 68), ...range(1, 38)],
-  [FACTION_IDS.GREEN]: [...range(56, 68), ...range(1, 55)],
+  [FACTION_IDS.YELLOW]: [...range(39, 68), ...range(1, 38)],
+  [FACTION_IDS.GREEN]: [...range(22, 68), ...range(1, 21)],
+  [FACTION_IDS.BLUE]: [...range(56, 68), ...range(1, 55)],
+  [FACTION_IDS.RED]: [...range(5, 68), ...range(1, 4)],
 };
 
 function makePlayers(count) {
@@ -130,7 +131,7 @@ describe('game engine foundation', () => {
     });
   });
 
-  test.each([2, 3, 4])('creates a ready initial state for %i players', (playerCount) => {
+test.each([2, 3, 4])('creates a ready initial state for %i players', (playerCount) => {
     const players = makePlayers(playerCount);
     const turnOrder = players.map((player) => player.id);
     const state = createInitialGameState({ players, turnOrder });
@@ -139,6 +140,25 @@ describe('game engine foundation', () => {
     expect(state.players).toHaveLength(playerCount);
     expect(state.turnOrder).toEqual(turnOrder);
     expect(state.currentPlayerId).toBe(turnOrder[0]);
+
+    const expectedCharacterStates = {
+      'green.druid': {
+        abilityStatesById: {
+          [ABILITY_IDS.DRUID_VINES]: { charges: 2 },
+        },
+      },
+    };
+    if (playerCount >= 3) {
+      expectedCharacterStates['blue.iceMage'] = {
+        abilityStatesById: {
+          [ABILITY_IDS.ICE_MAGE_FREEZING]: { charges: 2 },
+        },
+      };
+    }
+    expect(state.characterStatesById).toEqual(expectedCharacterStates);
+    expect(state.factionStatesById).toEqual({});
+    expect(state.globalEffects).toEqual([]);
+    expect(state.terrainEffectsByPositionKey).toEqual({});
 
     state.players.forEach((player) => {
       expect(player.characters).toHaveLength(4);

@@ -2,10 +2,11 @@ import React from 'react';
 import fs from 'fs';
 import path from 'path';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { EXECUTABLE_ACTION_TYPES, FACTION_IDS, GAME_PHASES, POSITION_TYPES, SAFE_SQUARES, START_SQUARE_BY_FACTION, TURN_PHASES } from '../engine';
+import { CHARACTER_STATUS_TYPES, createDruidVinesEffect, createFrozenStatus, createIceEffect, EXECUTABLE_ACTION_TYPES, FACTION_IDS, GAME_PHASES, POSITION_TYPES, SAFE_SQUARES, START_SQUARE_BY_FACTION, TERRAIN_EFFECT_TYPES, TURN_PHASES } from '../engine';
 import { GameBoard } from './GameBoard';
 import { CLASSIC_GOAL, getClassicCommonCellById, getClassicFinalLaneCellsForFaction, getClassicHomeZone } from './classicBoardGeometry';
 import { getCharacterSlotCoordinate, getHomeSlots, getTokenBounds } from './boardGeometry';
+import { getTerrainEffectRenderer } from './terrain/terrainVisualRegistry';
 
 function createCharacter({ id, characterId, name, factionId, position, ...rest }) {
   return { id, characterId, name, factionId, position, ...rest };
@@ -15,13 +16,15 @@ function createPlayer({ id, name, factionId, characters }) {
   return { id, name, factionId, characters };
 }
 
-function createGameState(players) {
+function createGameState(players, overrides = {}) {
   return {
     phase: GAME_PHASES.IN_PROGRESS,
     players,
     turnOrder: players.map((player) => player.id),
     currentPlayerId: players[0].id,
     winnerPlayerId: null,
+    terrainEffectsByPositionKey: {},
+    ...overrides,
   };
 }
 
@@ -33,8 +36,8 @@ function createTurnState(overrides = {}) {
     consecutiveSixes: 0,
     currentRoll: 5,
     availableActions: [],
-    pendingReward: null,
-    availableRewardActions: [],
+    pendingDecision: null,
+    availableDecisionActions: [],
     ...overrides,
   };
 }
@@ -90,11 +93,11 @@ function createPlayers(count = 2) {
   return players.slice(0, count);
 }
 
-function renderBoard({ players = createPlayers(), availableActions = [], availableRewardActions = [] } = {}) {
-  const gameState = createGameState(players);
-  const turnState = createTurnState({ availableActions, availableRewardActions });
+function renderBoard({ players = createPlayers(), availableActions = [], availableDecisionActions = [], terrainEffectsByPositionKey = {}, characterStatesById = {} } = {}) {
+  const gameState = createGameState(players, { terrainEffectsByPositionKey, characterStatesById });
+  const turnState = createTurnState({ availableActions, availableDecisionActions });
   const onExecuteAction = jest.fn();
-  const onExecuteRewardChoice = jest.fn();
+  const onExecuteDecision = jest.fn();
 
   const renderResult = render(
     <GameBoard
@@ -102,13 +105,13 @@ function renderBoard({ players = createPlayers(), availableActions = [], availab
       turnState={turnState}
       currentPlayer={gameState.players[0]}
       availableActions={availableActions}
-      availableRewardActions={availableRewardActions}
+      availableDecisionActions={availableDecisionActions}
       onExecuteAction={onExecuteAction}
-      onExecuteRewardChoice={onExecuteRewardChoice}
+      onExecuteDecision={onExecuteDecision}
     />,
   );
 
-  return { gameState, onExecuteAction, onExecuteRewardChoice, ...renderResult };
+  return { gameState, onExecuteAction, onExecuteDecision, ...renderResult };
 }
 
 function getCommonSlot(square) {
@@ -129,6 +132,31 @@ function createNormalMovementAction(characterId, destination = { type: POSITION_
     characterId,
     movement: { path: [], destination },
   };
+}
+
+function createVines(position) {
+  return createDruidVinesEffect({
+    characterId: 'green.druid',
+    factionId: FACTION_IDS.GREEN,
+    position,
+  });
+}
+
+function createIce(position) {
+  return createIceEffect({
+    characterId: 'blue.iceMage',
+    factionId: FACTION_IDS.BLUE,
+    position,
+    chargeSequence: 2,
+  });
+}
+
+function createFrozen(characterId) {
+  return createFrozenStatus({
+    sourceCharacterId: 'blue.iceMage',
+    sourceFactionId: FACTION_IDS.BLUE,
+    targetCharacterId: characterId,
+  });
 }
 
 function expectPieceAtPoint(piece, point) {
@@ -343,11 +371,242 @@ describe('GameBoard', () => {
     });
   });
 
+  test('uses the centralized vines renderer without adding overlays to clean positions', () => {
+    const position = { type: POSITION_TYPES.COMMON, square: 12 };
+    const vines = createVines(position);
+
+    renderBoard({
+      terrainEffectsByPositionKey: { 'common:12': [vines] },
+    });
+
+    expect(getTerrainEffectRenderer(TERRAIN_EFFECT_TYPES.DRUID_VINES)).toBeTruthy();
+    expect(getTerrainEffectRenderer('futureTerrain')).toBeNull();
+    expect(document.querySelector('[data-terrain-position-key="common:12"]')).toHaveAttribute(
+      'data-terrain-effect-type',
+      TERRAIN_EFFECT_TYPES.DRUID_VINES,
+    );
+    expect(document.querySelector('[data-terrain-position-key="common:11"]')).toBeNull();
+  });
+
+  test('does not create a terrain surface without renderable effects', () => {
+    const { rerender } = renderBoard();
+
+    expect(document.querySelector('.game-board__terrain-surface')).toBeNull();
+
+    const players = createPlayers();
+    const gameState = createGameState(players, {
+      terrainEffectsByPositionKey: {
+        'common:12': [{
+          id: 'future-terrain',
+          type: 'futureTerrain',
+          data: { position: { type: POSITION_TYPES.COMMON, square: 12 } },
+        }],
+      },
+    });
+
+    rerender(
+      <GameBoard
+        gameState={gameState}
+        turnState={createTurnState()}
+        currentPlayer={gameState.players[0]}
+        availableActions={[]}
+        availableDecisionActions={[]}
+        onExecuteAction={jest.fn()}
+        onExecuteDecision={jest.fn()}
+      />,
+    );
+
+    expect(document.querySelector('.game-board__terrain-surface')).toBeNull();
+  });
+
+  test('keeps the SAFE base marker visible below the translucent vines layer', () => {
+    const position = { type: POSITION_TYPES.COMMON, square: 12 };
+
+    renderBoard({
+      terrainEffectsByPositionKey: { 'common:12': [createVines(position)] },
+    });
+
+    expect(getCommonSlot(12)).toHaveClass('game-board__slot--safe');
+    expect(getCommonSlot(12).querySelector('[data-safe-marker]')).toHaveTextContent('◆');
+    expect(document.querySelector('[data-terrain-position-key="common:12"]')).toBeInTheDocument();
+  });
+
+  test('renders COMMON vines from the canonical SVG cell geometry', () => {
+    const position = { type: POSITION_TYPES.COMMON, square: 12 };
+    const cell = getClassicCommonCellById(12);
+
+    renderBoard({
+      terrainEffectsByPositionKey: { 'common:12': [createVines(position)] },
+    });
+
+    const wash = document.querySelector('[data-terrain-position-key="common:12"] .terrain-effect__vines-wash');
+
+    expect(Number(wash.getAttribute('data-terrain-cell-x'))).toBeCloseTo(cell.x, 3);
+    expect(Number(wash.getAttribute('data-terrain-cell-y'))).toBeCloseTo(cell.y, 3);
+    expect(Number(wash.getAttribute('data-terrain-cell-width'))).toBeCloseTo(cell.width, 3);
+    expect(Number(wash.getAttribute('data-terrain-cell-height'))).toBeCloseTo(cell.height, 3);
+  });
+
+  test('renders vines with an instance-scoped gradient and glow', () => {
+    const position = { type: POSITION_TYPES.COMMON, square: 12 };
+
+    renderBoard({
+      terrainEffectsByPositionKey: { 'common:12': [createVines(position)] },
+    });
+
+    const effect = document.querySelector('[data-terrain-position-key="common:12"]');
+    const gradient = effect.querySelector('linearGradient');
+    const filter = effect.querySelector('filter');
+    const glow = effect.querySelector('.terrain-effect__vines-glow');
+    const wash = effect.querySelector('.terrain-effect__vines-wash');
+
+    expect(gradient.id).toMatch(/^terrain-vines-gradient-/);
+    expect(filter.id).toMatch(/^terrain-vines-glow-/);
+    expect(wash).toHaveAttribute('fill', `url(#${gradient.id})`);
+    expect(glow).toHaveAttribute('fill', `url(#${gradient.id})`);
+    expect(glow).toHaveAttribute('filter', `url(#${filter.id})`);
+  });
+
+  test('renders FINAL_LANE vines from that lane cell geometry', () => {
+    const position = { type: POSITION_TYPES.FINAL_LANE, factionId: FACTION_IDS.GREEN, index: 3 };
+    const cell = getClassicFinalLaneCellsForFaction(FACTION_IDS.GREEN)[2];
+
+    renderBoard({
+      terrainEffectsByPositionKey: { 'finalLane:green:3': [createVines(position)] },
+    });
+
+    const effect = document.querySelector('[data-terrain-position-key="finalLane:green:3"]');
+    const wash = effect.querySelector('.terrain-effect__vines-wash');
+
+    expect(effect).toHaveAttribute('data-terrain-effect-type', TERRAIN_EFFECT_TYPES.DRUID_VINES);
+    expect(Number(wash.getAttribute('data-terrain-cell-x'))).toBeCloseTo(cell.x, 3);
+    expect(Number(wash.getAttribute('data-terrain-cell-y'))).toBeCloseTo(cell.y, 3);
+    expect(Number(wash.getAttribute('data-terrain-cell-width'))).toBeCloseTo(cell.width, 3);
+    expect(Number(wash.getAttribute('data-terrain-cell-height'))).toBeCloseTo(cell.height, 3);
+  });
+
+  test.each([
+    [
+      'COMMON',
+      { type: POSITION_TYPES.COMMON, square: 12 },
+      'common:12',
+      getClassicCommonCellById(12),
+    ],
+    [
+      'FINAL_LANE',
+      { type: POSITION_TYPES.FINAL_LANE, factionId: FACTION_IDS.BLUE, index: 3 },
+      'finalLane:blue:3',
+      getClassicFinalLaneCellsForFaction(FACTION_IDS.BLUE)[2],
+    ],
+  ])('renders %s ice through the terrain registry and canonical geometry', (_, position, positionKey, cell) => {
+    renderBoard({
+      terrainEffectsByPositionKey: { [positionKey]: [createIce(position)] },
+    });
+
+    const effect = document.querySelector(`[data-terrain-position-key="${positionKey}"]`);
+    const wash = effect.querySelector('.terrain-effect__ice-wash');
+
+    expect(getTerrainEffectRenderer(TERRAIN_EFFECT_TYPES.ICE)).toBeTruthy();
+    expect(effect).toHaveAttribute('data-terrain-effect-type', TERRAIN_EFFECT_TYPES.ICE);
+    expect(effect).toHaveAttribute('pointer-events', 'none');
+    expect(effect.querySelector('.terrain-effect__ice-crystals')).toBeInTheDocument();
+    expect(effect.querySelector('linearGradient').id).toMatch(/^terrain-ice-gradient-/);
+    expect(effect.querySelector('filter').id).toMatch(/^terrain-ice-glow-/);
+    expect(Number(wash.getAttribute('data-terrain-cell-x'))).toBeCloseTo(cell.x, 3);
+    expect(Number(wash.getAttribute('data-terrain-cell-y'))).toBeCloseTo(cell.y, 3);
+    expect(Number(wash.getAttribute('data-terrain-cell-width'))).toBeCloseTo(cell.width, 3);
+    expect(Number(wash.getAttribute('data-terrain-cell-height'))).toBeCloseTo(cell.height, 3);
+    if (position.type === POSITION_TYPES.COMMON) {
+      expect(getCommonSlot(position.square).querySelector('[data-safe-marker]')).toHaveTextContent('◆');
+    }
+  });
+
+  test('renders Frozen only on its target without changing token geometry or clicks', () => {
+    const players = createPlayers();
+    const warrior = players[0].characters.find((character) => character.id === 'red.warrior');
+    const fireMage = players[0].characters.find((character) => character.id === 'red.fireMage');
+    fireMage.position = { ...warrior.position };
+    const action = createNormalMovementAction('red.warrior');
+    const { onExecuteAction } = renderBoard({
+      players,
+      availableActions: [action],
+      characterStatesById: {
+        'red.warrior': { effects: [createFrozen('red.warrior')] },
+      },
+    });
+    const frozenPiece = screen.getByRole('button', { name: /Guerrero.*Congelado.*available/ });
+    const cleanPiece = screen.getByLabelText(/Mago de fuego/);
+    const frozenBounds = getPieceTokenBounds(frozenPiece);
+
+    expect(frozenPiece.querySelector('[data-character-status-layer]')).toBeInTheDocument();
+    expect(frozenPiece.querySelector('[data-character-status-type="frozen"]')).toBeInTheDocument();
+    expect(cleanPiece.querySelector('[data-character-status-layer]')).toBeNull();
+    expect(Number(frozenPiece.closest('foreignObject').getAttribute('width'))).toBeCloseTo(
+      frozenBounds.right - frozenBounds.x,
+      3,
+    );
+
+    fireEvent.click(frozenPiece);
+
+    expect(onExecuteAction).toHaveBeenCalledWith(action);
+  });
+
+  test('ignores unknown character statuses', () => {
+    renderBoard({
+      characterStatesById: {
+        'red.warrior': {
+          effects: [{ id: 'unknown', type: 'futureStatus' }],
+        },
+      },
+    });
+
+    expect(document.querySelector('[data-character-status-layer]')).toBeNull();
+    expect(screen.getByLabelText(/Guerrero/)).not.toHaveAccessibleName(/estados/);
+  });
+
+  test('keeps terrain between the base and tokens without intercepting token clicks', () => {
+    const position = { type: POSITION_TYPES.COMMON, square: 5 };
+    const action = createNormalMovementAction('red.warrior');
+    const { onExecuteAction } = renderBoard({
+      availableActions: [action],
+      terrainEffectsByPositionKey: { 'common:5': [createVines(position)] },
+    });
+    const board = screen.getByTestId('game-board');
+    const surface = board.querySelector('.game-board__surface');
+    const terrain = board.querySelector('.game-board__terrain-surface');
+    const tokens = board.querySelector('.game-board__character-layer');
+
+    expect(terrain).toHaveAttribute('pointer-events', 'none');
+    expect(terrain.querySelector('.terrain-effect--vines')).toHaveAttribute('pointer-events', 'none');
+    expect(surface.compareDocumentPosition(terrain) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(terrain.compareDocumentPosition(tokens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: /Guerrero.*available/ }));
+
+    expect(onExecuteAction).toHaveBeenCalledWith(action);
+  });
+
   test('defines high-contrast common square number and safe marker styles', () => {
     const css = fs.readFileSync(path.join(__dirname, 'GameBoard.css'), 'utf8');
 
     expect(css).toMatch(/\.game-board__slot\[data-common-square\]\s+\.game-board__slot-number\s*\{[^}]*fill:\s*#0f172a;[^}]*opacity:\s*0\.72;/);
     expect(css).toMatch(/\.game-board__slot\[data-safe-square\]\s+\.game-board__slot-symbol\s*\{[^}]*fill:\s*#111827;[^}]*opacity:\s*0\.78;/);
+  });
+
+  test('keeps a static vines glow when reduced motion is preferred', () => {
+    const css = fs.readFileSync(path.join(__dirname, 'terrain/TerrainEffectLayer.css'), 'utf8');
+
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.terrain-effect__vines-glow\s*\{[^}]*animation:\s*none;[^}]*opacity:\s*0\.52;/);
+  });
+
+  test('keeps static Ice and Frozen representations with reduced motion', () => {
+    const terrainCss = fs.readFileSync(path.join(__dirname, 'terrain/TerrainEffectLayer.css'), 'utf8');
+    const statusCss = fs.readFileSync(path.join(__dirname, 'status/CharacterStatusLayer.css'), 'utf8');
+
+    expect(terrainCss).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.terrain-effect__ice-glow\s*\{[^}]*animation:\s*none;[^}]*opacity:\s*0\.44;/);
+    expect(statusCss).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.character-status--frozen\s*\{[^}]*animation:\s*none;[^}]*filter:\s*none;/);
+    expect(statusCss).toMatch(/\.character-status-layer,[\s\S]*pointer-events:\s*none;/);
+    expect(CHARACTER_STATUS_TYPES.FROZEN).toBe('frozen');
   });
 
   test('renders only common-track square numbers while preserving final-lane index metadata', () => {
@@ -518,16 +777,16 @@ describe('GameBoard', () => {
     const warrior = players[0].characters[1];
     const gameState = createGameState(players);
     const onExecuteAction = jest.fn();
-    const onExecuteRewardChoice = jest.fn();
+    const onExecuteDecision = jest.fn();
     const { rerender } = render(
       <GameBoard
         gameState={gameState}
         turnState={createTurnState()}
         currentPlayer={gameState.players[0]}
         availableActions={[]}
-        availableRewardActions={[]}
+        availableDecisionActions={[]}
         onExecuteAction={onExecuteAction}
-        onExecuteRewardChoice={onExecuteRewardChoice}
+        onExecuteDecision={onExecuteDecision}
       />,
     );
 
@@ -541,9 +800,9 @@ describe('GameBoard', () => {
         turnState={createTurnState()}
         currentPlayer={gameState.players[0]}
         availableActions={[]}
-        availableRewardActions={[]}
+        availableDecisionActions={[]}
         onExecuteAction={onExecuteAction}
-        onExecuteRewardChoice={onExecuteRewardChoice}
+        onExecuteDecision={onExecuteDecision}
       />,
     );
 
@@ -591,7 +850,7 @@ describe('GameBoard', () => {
     const players = createPlayers();
     const gameState = createGameState(players);
     const onExecuteAction = jest.fn();
-    const onExecuteRewardChoice = jest.fn();
+    const onExecuteDecision = jest.fn();
     const action = createNormalMovementAction('red.warrior');
     const { rerender } = render(
       <GameBoard
@@ -599,9 +858,9 @@ describe('GameBoard', () => {
         turnState={createTurnState({ availableActions: [action] })}
         currentPlayer={gameState.players[0]}
         availableActions={[action]}
-        availableRewardActions={[]}
+        availableDecisionActions={[]}
         onExecuteAction={onExecuteAction}
-        onExecuteRewardChoice={onExecuteRewardChoice}
+        onExecuteDecision={onExecuteDecision}
       />,
     );
 
@@ -613,9 +872,9 @@ describe('GameBoard', () => {
         turnState={createTurnState({ availableActions: [] })}
         currentPlayer={gameState.players[0]}
         availableActions={[]}
-        availableRewardActions={[]}
+        availableDecisionActions={[]}
         onExecuteAction={onExecuteAction}
-        onExecuteRewardChoice={onExecuteRewardChoice}
+        onExecuteDecision={onExecuteDecision}
       />,
     );
 

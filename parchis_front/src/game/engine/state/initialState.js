@@ -1,3 +1,5 @@
+import { ABILITY_REGISTRY } from '../abilities/abilities';
+import { getAbilitiesForCharacterType } from '../abilities/abilityRegistry';
 import { getCharactersForFaction, getFactionIds } from '../factions/factions';
 import { createHomePosition } from './positions';
 
@@ -67,6 +69,25 @@ function createInitialCharactersForPlayer(player) {
   }));
 }
 
+function createInitialCharacterStates(players) {
+  return Object.fromEntries(players.flatMap((player) =>
+    createInitialCharactersForPlayer(player).flatMap((character) => {
+      const abilityStatesById = Object.fromEntries(
+        getAbilitiesForCharacterType({
+          registry: ABILITY_REGISTRY,
+          characterType: character.characterId,
+        })
+          .filter((ability) => ability.initialState !== undefined)
+          .map((ability) => [ability.id, ability.initialState]),
+      );
+
+      return Object.keys(abilityStatesById).length === 0
+        ? []
+        : [[character.id, { abilityStatesById }]];
+    }),
+  ));
+}
+
 export function createInitialGameState({ players, turnOrder }) {
   assertValidPlayers(players);
   assertValidTurnOrder(players, turnOrder);
@@ -82,5 +103,9 @@ export function createInitialGameState({ players, turnOrder }) {
     turnOrder: [...turnOrder],
     currentPlayerId: turnOrder[0],
     winnerPlayerId: null,
+    characterStatesById: createInitialCharacterStates(players),
+    factionStatesById: {},
+    globalEffects: [],
+    terrainEffectsByPositionKey: {},
   };
 }

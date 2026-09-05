@@ -76,6 +76,18 @@ export function isPlayablePosition(position) {
   );
 }
 
+export function getPlayablePositionKey(position) {
+  if (!isPlayablePosition(position)) {
+    throw new Error('A playable position is required to create a position key.');
+  }
+
+  if (position.type === POSITION_TYPES.COMMON) {
+    return `common:${position.square}`;
+  }
+
+  return `finalLane:${position.factionId}:${position.index}`;
+}
+
 export function clonePosition(position) {
   return { ...position };
 }

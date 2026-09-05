@@ -7,6 +7,7 @@ import {
   EXECUTION_EVENT_TYPES,
   GAME_PHASES,
   REWARD_ACTION_TYPES,
+  REWARD_SOURCE_TYPES,
   REWARD_TYPES,
   TURN_PHASES,
 } from './engine';
@@ -55,8 +56,8 @@ function createTurnState(overrides = {}) {
     consecutiveSixes: 0,
     currentRoll: null,
     availableActions: [],
-    pendingReward: null,
-    availableRewardActions: [],
+    pendingDecision: null,
+    availableDecisionActions: [],
     ...overrides,
   };
 }
@@ -71,12 +72,12 @@ function createEngine(overrides = {}) {
     turnState,
     currentPlayer: gameState.players.find((player) => player.id === gameState.currentPlayerId),
     availableActions: turnState.availableActions || [],
-    pendingReward: turnState.pendingReward || null,
-    availableRewardActions: turnState.availableRewardActions || [],
+    pendingDecision: turnState.pendingDecision || null,
+    availableDecisionActions: turnState.availableDecisionActions || [],
     lastEvents: [],
     registerRoll: jest.fn(),
     executeAction: jest.fn(),
-    executeRewardChoice: jest.fn(),
+    executeDecision: jest.fn(),
     ...overrides,
   };
 }
@@ -221,7 +222,7 @@ describe('DevGamePageContent', () => {
     expect(within(developmentTools).getByRole('button', { name: '5' })).toBeEnabled();
     expect(within(developmentTools).getByLabelText('Game status')).toBeInTheDocument();
     expect(within(developmentTools).getByLabelText('Available actions')).toBeInTheDocument();
-    expect(within(developmentTools).getByLabelText('Reward actions')).toBeInTheDocument();
+    expect(within(developmentTools).getByLabelText('Decision actions')).toBeInTheDocument();
     expect(within(developmentTools).getByLabelText('Character positions')).toBeInTheDocument();
     expect(within(developmentTools).getByLabelText('Last events')).toBeInTheDocument();
     expect(document.querySelector('[data-start-square="56"]')).toBeTruthy();
@@ -350,9 +351,10 @@ describe('DevGamePageContent', () => {
     expect(engine.executeAction).toHaveBeenCalledWith(action);
   });
 
-  test('renders reward choices and delegates executeRewardChoice', () => {
+  test('renders a pending decision and delegates executeDecision', () => {
     const rewardAction = {
-      type: REWARD_ACTION_TYPES.GOAL_REWARD_MOVEMENT,
+      id: 'rewardRecipientSelection:movementRewardMovement:goal:blue.alchemist:blue:10:blue.hunter',
+      type: REWARD_ACTION_TYPES.MOVEMENT_REWARD_MOVEMENT,
       characterId: 'blue.hunter',
       steps: 10,
       movement: {
@@ -362,21 +364,180 @@ describe('DevGamePageContent', () => {
         outcome: { type: 'empty' },
       },
     };
+    const pendingReward = {
+      type: REWARD_TYPES.MOVEMENT_REWARD,
+      source: { type: REWARD_SOURCE_TYPES.GOAL, characterId: 'blue.alchemist' },
+      ownerFactionId: 'blue',
+      steps: 10,
+      excludedCharacterIds: ['blue.alchemist'],
+    };
     const turnState = createTurnState({
-      phase: TURN_PHASES.WAITING_FOR_REWARD_CHOICE,
-      pendingReward: { type: REWARD_TYPES.GOAL_REWARD, sourceCharacterId: 'blue.alchemist', steps: 10 },
-      availableRewardActions: [rewardAction],
+      phase: TURN_PHASES.WAITING_FOR_DECISION,
+      pendingDecision: {
+        type: 'rewardRecipientSelection',
+        reward: pendingReward,
+      },
+      availableDecisionActions: [rewardAction],
     });
     const engine = renderDevGame({
       turnState,
-      pendingReward: turnState.pendingReward,
-      availableRewardActions: [rewardAction],
+      pendingDecision: turnState.pendingDecision,
+      availableDecisionActions: [rewardAction],
     });
 
-    expect(screen.getAllByText(/goalReward/).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Execute reward' }));
+    expect(screen.getByText('rewardRecipientSelection')).toBeInTheDocument();
+    expect(screen.getAllByText(/goal by blue.alchemist: 10 for blue/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Execute decision' }));
 
-    expect(engine.executeRewardChoice).toHaveBeenCalledWith(rewardAction);
+    expect(engine.executeDecision).toHaveBeenCalledWith(rewardAction.id);
+  });
+
+  test('renders optional ability decisions in the blocking player modal', () => {
+    const activateAction = {
+      id: 'optionalAbilityActivation:activateAbility:druid.vines:green.druid:common%3A23',
+      type: 'activateAbility',
+      abilityId: 'druid.vines',
+      characterId: 'green.druid',
+    };
+    const skipAction = {
+      id: 'optionalAbilityActivation:skipAbility:druid.vines:green.druid:common%3A23',
+      type: 'skipAbility',
+      abilityId: 'druid.vines',
+      characterId: 'green.druid',
+    };
+    const pendingDecision = {
+      type: 'optionalAbilityActivation',
+      abilityId: 'druid.vines',
+      characterId: 'green.druid',
+      position: { type: 'common', square: 23 },
+      positionKey: 'common:23',
+      movementType: 'normal',
+    };
+    const gameState = createGameState({
+      players: [{
+        id: 'player-green',
+        name: 'Player Green',
+        factionId: 'green',
+        characters: [createCharacter({
+          id: 'green.druid',
+          characterId: 'druid',
+          name: 'Druida',
+          factionId: 'green',
+          position: { type: 'common', square: 23 },
+        })],
+      }],
+      turnOrder: ['player-green'],
+      currentPlayerId: 'player-green',
+      characterStatesById: {
+        'green.druid': {
+          abilityStatesById: { 'druid.vines': { charges: 2 } },
+        },
+      },
+    });
+    const turnState = createTurnState({
+      playerId: 'player-green',
+      factionId: 'green',
+      phase: TURN_PHASES.WAITING_FOR_DECISION,
+      currentRoll: 2,
+      pendingDecision,
+      availableDecisionActions: [activateAction, skipAction],
+    });
+    const engine = renderDevGame({
+      gameState,
+      turnState,
+      pendingDecision,
+      availableDecisionActions: [activateAction, skipAction],
+    });
+
+    expect(screen.getByRole('dialog', { name: 'Enredaderas' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Cargas: 2 de 2')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Druida.*available/ })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Crear enredaderas' }));
+
+    expect(engine.executeDecision).toHaveBeenCalledWith(activateAction.id);
+  });
+
+  test('routes Ice Mage freezing target selection through the existing ability modal', () => {
+    const freezeAction = {
+      id: 'optionalAbilityActivation:activateAbility:iceMage.freezing:blue.iceMage:common%3A13:common%3A12:red.warrior',
+      type: 'activateAbility',
+      abilityId: 'iceMage.freezing',
+      characterId: 'blue.iceMage',
+      targetCharacterId: 'red.warrior',
+    };
+    const skipAction = {
+      id: 'optionalAbilityActivation:skipAbility:iceMage.freezing:blue.iceMage:common%3A13:common%3A12',
+      type: 'skipAbility',
+      abilityId: 'iceMage.freezing',
+      characterId: 'blue.iceMage',
+    };
+    const pendingDecision = {
+      type: 'optionalAbilityActivation',
+      abilityId: 'iceMage.freezing',
+      characterId: 'blue.iceMage',
+      position: { type: 'common', square: 13 },
+      positionKey: 'common:13',
+      previousPosition: { type: 'common', square: 12 },
+      previousPositionKey: 'common:12',
+      movementType: 'normal',
+    };
+    const gameState = createGameState({
+      players: [
+        {
+          id: 'player-blue',
+          name: 'Player Blue',
+          factionId: 'blue',
+          characters: [createCharacter({
+            id: 'blue.iceMage',
+            characterId: 'iceMage',
+            name: 'Mago de hielo',
+            factionId: 'blue',
+            position: { type: 'common', square: 13 },
+          })],
+        },
+        {
+          id: 'player-red',
+          name: 'Player Red',
+          factionId: 'red',
+          characters: [createCharacter({
+            id: 'red.warrior',
+            characterId: 'warrior',
+            name: 'Guerrero',
+            factionId: 'red',
+            position: { type: 'common', square: 12 },
+          })],
+        },
+      ],
+      turnOrder: ['player-blue', 'player-red'],
+      currentPlayerId: 'player-blue',
+      characterStatesById: {
+        'blue.iceMage': {
+          abilityStatesById: { 'iceMage.freezing': { charges: 1 } },
+        },
+      },
+    });
+    const turnState = createTurnState({
+      playerId: 'player-blue',
+      factionId: 'blue',
+      phase: TURN_PHASES.WAITING_FOR_DECISION,
+      currentRoll: 3,
+      pendingDecision,
+      availableDecisionActions: [freezeAction, skipAction],
+    });
+    const engine = renderDevGame({
+      gameState,
+      turnState,
+      pendingDecision,
+      availableDecisionActions: [freezeAction, skipAction],
+    });
+
+    expect(screen.getByRole('dialog', { name: 'Congelación' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Cargas: 1 de 2')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Congelar: Guerrero' }));
+
+    expect(engine.executeDecision).toHaveBeenCalledWith(freezeAction.id);
   });
 
   test('shows positions directly from GameState', () => {
@@ -436,13 +597,13 @@ describe('DevGamePageContent', () => {
           from: { type: 'common', square: 61 },
           to: { type: 'common', square: 13 },
           steps: 20,
-          actionType: REWARD_TYPES.CAPTURE_REWARD,
+          actionType: REWARD_ACTION_TYPES.MOVEMENT_REWARD_MOVEMENT,
         },
       ],
     });
 
-    expect(screen.getByText(/Cazador .* moved common 61 -> common 13 \(captureReward, 20 steps\)/)).toBeInTheDocument();
-    expect(within(screen.getByLabelText('Reward actions')).getByText('No reward choices available.')).toBeInTheDocument();
+    expect(screen.getByText(/Cazador .* moved common 61 -> common 13 \(movementRewardMovement, 20 steps\)/)).toBeInTheDocument();
+    expect(within(screen.getByLabelText('Decision actions')).getByText('No decision actions available.')).toBeInTheDocument();
   });
 
   test('reflects current player and repeat-roll state from GameFlow', () => {

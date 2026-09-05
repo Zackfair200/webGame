@@ -26,6 +26,11 @@ import {
   groupCharactersByPosition,
 } from './boardOccupancy';
 import { getCharacterVisual } from './characterVisuals';
+import { TerrainEffectLayer } from './terrain/TerrainEffectLayer';
+import {
+  CharacterStatusLayer,
+  getCharacterStatusLabels,
+} from './status/CharacterStatusLayer';
 import './GameBoard.css';
 
 const FACTION_LABELS = Object.freeze({
@@ -184,7 +189,7 @@ function ActionChooser({ character, actions, onChooseAction, onClose }) {
       <strong>{character.name}</strong>
       <p>Choose an engine action</p>
       {actions.map((action, index) => (
-        <button key={`${action.type}:${index}`} type="button" onClick={() => onChooseAction(action)}>
+        <button key={action.id || `${action.type}:${index}`} type="button" onClick={() => onChooseAction(action)}>
           {getActionLabel(action)} #{index + 1}
         </button>
       ))}
@@ -218,19 +223,23 @@ function OccupantRemovalChooser({ action, gameState, onConfirm, onCancel }) {
   );
 }
 
-function CharacterPiece({ character, coordinate, actions, rewardActions, onExecuteAction, onExecuteRewardChoice, onMultipleActions, onRequiresRemoval }) {
-  const isInteractive = actions.length > 0 || rewardActions.length > 0;
+function CharacterPiece({ character, coordinate, effects, actions, decisionActions, onExecuteAction, onExecuteDecision, onMultipleActions, onRequiresRemoval }) {
+  const isInteractive = actions.length > 0 || decisionActions.length > 0;
   const isMovable = actions.length > 0;
-  const isReward = actions.length === 0 && rewardActions.length > 0;
+  const isDecision = actions.length === 0 && decisionActions.length > 0;
   const characterVisual = getCharacterVisual(character);
+  const statusLabels = getCharacterStatusLabels(effects);
+  const statusLabel = statusLabels.length > 0 ? `, estados: ${statusLabels.join(', ')}` : '';
 
   function handleClick() {
     if (!isInteractive) {
       return;
     }
 
-    const executableActions = actions.length > 0 ? actions : rewardActions;
-    const execute = actions.length > 0 ? onExecuteAction : onExecuteRewardChoice;
+    const executableActions = actions.length > 0 ? actions : decisionActions;
+    const execute = actions.length > 0
+      ? onExecuteAction
+      : (decisionAction) => onExecuteDecision(decisionAction.id);
 
     if (executableActions.length > 1) {
       onMultipleActions(character, executableActions, execute);
@@ -262,10 +271,10 @@ function CharacterPiece({ character, coordinate, actions, rewardActions, onExecu
     >
       <Element
         type={isInteractive ? 'button' : undefined}
-        className={`game-character game-character--${character.factionId}${isInteractive ? ' game-character--interactive' : ''}${isMovable ? ' game-character--movable' : ''}${isReward ? ' game-character--reward' : ''}`}
+        className={`game-character game-character--${character.factionId}${isInteractive ? ' game-character--interactive' : ''}${isMovable ? ' game-character--movable' : ''}${isDecision ? ' game-character--decision' : ''}`}
         style={{ fontSize: `${tokenSize * 0.32}px` }}
         onClick={handleClick}
-        aria-label={`${character.name} (${character.id})${isInteractive ? ' available' : ''}`}
+        aria-label={`${character.name} (${character.id})${statusLabel}${isInteractive ? ' available' : ''}`}
         data-character-id={character.id}
         data-position-key={getPositionKey(character.position, character.factionId)}
         data-visual-row={coordinate.row}
@@ -280,13 +289,14 @@ function CharacterPiece({ character, coordinate, actions, rewardActions, onExecu
             <img src={characterVisual.portraitSrc} alt="" />
           ) : <span className="game-character__fallback-initials">{characterVisual.fallbackInitials}</span>}
         </span>
+        <CharacterStatusLayer characterId={character.id} effects={effects} />
         <span className="game-character__name">{character.name}</span>
       </Element>
     </foreignObject>
   );
 }
 
-function CharacterLayer({ gameState, actionsByCharacterId, rewardActionsByCharacterId, onExecuteAction, onExecuteRewardChoice }) {
+function CharacterLayer({ gameState, actionsByCharacterId, decisionActionsByCharacterId, onExecuteAction, onExecuteDecision }) {
   const groups = groupCharactersByPosition(gameState);
   const [pendingActions, setPendingActions] = useState(null);
   const [pendingRemovalAction, setPendingRemovalAction] = useState(null);
@@ -336,10 +346,11 @@ function CharacterLayer({ gameState, actionsByCharacterId, rewardActionsByCharac
               key={character.id}
               character={character}
               coordinate={coordinate}
+              effects={gameState.characterStatesById?.[character.id]?.effects || []}
               actions={actionsByCharacterId.get(character.id) || []}
-              rewardActions={rewardActionsByCharacterId.get(character.id) || []}
+              decisionActions={decisionActionsByCharacterId.get(character.id) || []}
               onExecuteAction={onExecuteAction}
-              onExecuteRewardChoice={onExecuteRewardChoice}
+              onExecuteDecision={onExecuteDecision}
               onRequiresRemoval={setPendingRemovalAction}
               onMultipleActions={(selectedCharacter, actions, execute) => setPendingActions({ character: selectedCharacter, actions, execute })}
             />
@@ -372,12 +383,12 @@ function CharacterLayer({ gameState, actionsByCharacterId, rewardActionsByCharac
 export function GameBoard({
   gameState,
   availableActions = [],
-  availableRewardActions = [],
+  availableDecisionActions = [],
   onExecuteAction,
-  onExecuteRewardChoice,
+  onExecuteDecision,
 }) {
   const actionsByCharacterId = createActionsByCharacterId(availableActions);
-  const rewardActionsByCharacterId = createActionsByCharacterId(availableRewardActions);
+  const decisionActionsByCharacterId = createActionsByCharacterId(availableDecisionActions);
   const presentFactionIds = gameState.players.map((player) => player.factionId);
   const barriers = getVisualBarriers(gameState);
 
@@ -385,15 +396,18 @@ export function GameBoard({
     <section className="game-board-shell" aria-label="Visual game board">
       <div className="game-board" data-testid="game-board">
         <BoardSurface presentFactionIds={presentFactionIds} />
+        <TerrainEffectLayer
+          terrainEffectsByPositionKey={gameState.terrainEffectsByPositionKey}
+        />
         {barriers.map((barrier) => (
           <BarrierIndicator key={getPositionKey(barrier.position, barrier.factionId)} barrier={barrier} />
         ))}
         <CharacterLayer
           gameState={gameState}
           actionsByCharacterId={actionsByCharacterId}
-          rewardActionsByCharacterId={rewardActionsByCharacterId}
+          decisionActionsByCharacterId={decisionActionsByCharacterId}
           onExecuteAction={onExecuteAction}
-          onExecuteRewardChoice={onExecuteRewardChoice}
+          onExecuteDecision={onExecuteDecision}
         />
       </div>
     </section>

@@ -1,5 +1,6 @@
 import {
   CHARACTERS_BY_FACTION,
+  ABILITY_IDS,
   COMMON_SQUARES,
   FACTION_IDS,
   FACTIONS,
@@ -130,7 +131,7 @@ describe('game engine foundation', () => {
     });
   });
 
-  test.each([2, 3, 4])('creates a ready initial state for %i players', (playerCount) => {
+test.each([2, 3, 4])('creates a ready initial state for %i players', (playerCount) => {
     const players = makePlayers(playerCount);
     const turnOrder = players.map((player) => player.id);
     const state = createInitialGameState({ players, turnOrder });
@@ -139,6 +140,25 @@ describe('game engine foundation', () => {
     expect(state.players).toHaveLength(playerCount);
     expect(state.turnOrder).toEqual(turnOrder);
     expect(state.currentPlayerId).toBe(turnOrder[0]);
+
+    const expectedCharacterStates = {
+      'green.druid': {
+        abilityStatesById: {
+          [ABILITY_IDS.DRUID_VINES]: { charges: 2 },
+        },
+      },
+    };
+    if (playerCount >= 3) {
+      expectedCharacterStates['blue.iceMage'] = {
+        abilityStatesById: {
+          [ABILITY_IDS.ICE_MAGE_FREEZING]: { charges: 2 },
+        },
+      };
+    }
+    expect(state.characterStatesById).toEqual(expectedCharacterStates);
+    expect(state.factionStatesById).toEqual({});
+    expect(state.globalEffects).toEqual([]);
+    expect(state.terrainEffectsByPositionKey).toEqual({});
 
     state.players.forEach((player) => {
       expect(player.characters).toHaveLength(4);

@@ -80,14 +80,19 @@ function createRollFiveResult({ actionMode, availableActions }) {
   };
 }
 
-export function getAvailableRollFiveActions({ factionId, characters }) {
+export function getAvailableRollFiveActions({ factionId, characters, gameState = null }) {
   assertCharactersArray(characters);
   assertValidFactionId(factionId);
 
   const homeCharacters = getHomeCharactersForFaction({ factionId, characters });
 
   if (homeCharacters.length === 0) {
-    const { movableCharacters } = getMovableCharacters({ factionId, steps: 5, characters });
+    const { movableCharacters } = getMovableCharacters({
+      factionId,
+      steps: 5,
+      characters,
+      gameState,
+    });
 
     return createRollFiveResult({
       actionMode:

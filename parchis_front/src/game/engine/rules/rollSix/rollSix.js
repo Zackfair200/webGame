@@ -1,5 +1,7 @@
 import { getFactionIds } from '../../factions/factions';
+import { MOVEMENT_SOURCE_TYPES, MOVEMENT_TYPES } from '../../movement/types';
 import { assertCharactersArray } from '../../occupancy/occupancy';
+import { createMovementRulesContext } from '../../rulesContext/rulesContext';
 import { isSamePosition } from '../../state/positions';
 import { getBarriersForFaction } from '../barriers/barriers';
 import { evaluateMovement } from '../legalMovement/legalMovement';
@@ -59,7 +61,22 @@ function getBarrierCharacterIds(barriers) {
   return new Set(barriers.flatMap((barrier) => barrier.occupants.map((occupant) => occupant.id)));
 }
 
-function getNormalMovementActions({ factionId, characters, excludedCharacterIds = new Set() }) {
+function createRollSixRulesContext({ gameState, characters, characterId }) {
+  return createMovementRulesContext({
+    gameState,
+    characters,
+    actorCharacterId: characterId,
+    source: { type: MOVEMENT_SOURCE_TYPES.DICE, roll: 6 },
+    movementType: MOVEMENT_TYPES.NORMAL,
+  });
+}
+
+function getNormalMovementActions({
+  factionId,
+  characters,
+  gameState,
+  excludedCharacterIds = new Set(),
+}) {
   const actions = [];
 
   characters.forEach((character) => {
@@ -71,6 +88,7 @@ function getNormalMovementActions({ factionId, characters, excludedCharacterIds 
       characterId: character.id,
       steps: 6,
       characters,
+      rulesContext: createRollSixRulesContext({ gameState, characters, characterId: character.id }),
     });
 
     if (movement.legal) {
@@ -81,7 +99,7 @@ function getNormalMovementActions({ factionId, characters, excludedCharacterIds 
   return actions;
 }
 
-function getBreakBarrierActions({ barriers, characters }) {
+function getBreakBarrierActions({ barriers, characters, gameState }) {
   const actions = [];
 
   barriers.forEach((barrier) => {
@@ -90,6 +108,7 @@ function getBreakBarrierActions({ barriers, characters }) {
         characterId: occupant.id,
         steps: 6,
         characters,
+        rulesContext: createRollSixRulesContext({ gameState, characters, characterId: occupant.id }),
       });
 
       if (!movement.legal || isSamePosition(movement.destination, barrier.position)) {
@@ -107,14 +126,19 @@ function getBreakBarrierActions({ barriers, characters }) {
   return actions;
 }
 
-export function getAvailableRollSixActions({ factionId, characters }) {
+export function getAvailableRollSixActions({ factionId, characters, gameState = null }) {
   assertCharactersArray(characters);
   assertValidFactionId(factionId);
 
   const barriers = getBarriersForFaction({ factionId, characters });
 
   if (barriers.length === 0) {
-    const { movableCharacters } = getMovableCharacters({ factionId, steps: 6, characters });
+    const { movableCharacters } = getMovableCharacters({
+      factionId,
+      steps: 6,
+      characters,
+      gameState,
+    });
 
     return createRollSixResult({
       actionMode:
@@ -125,7 +149,7 @@ export function getAvailableRollSixActions({ factionId, characters }) {
     });
   }
 
-  const breakBarrierActions = getBreakBarrierActions({ barriers, characters });
+  const breakBarrierActions = getBreakBarrierActions({ barriers, characters, gameState });
 
   if (breakBarrierActions.length > 0) {
     return createRollSixResult({
@@ -138,6 +162,7 @@ export function getAvailableRollSixActions({ factionId, characters }) {
   const normalMovementActions = getNormalMovementActions({
     factionId,
     characters,
+    gameState,
     excludedCharacterIds: getBarrierCharacterIds(barriers),
   });
 

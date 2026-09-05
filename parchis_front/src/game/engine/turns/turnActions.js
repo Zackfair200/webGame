@@ -2,7 +2,7 @@ import { executeAction } from '../actions/executeAction';
 import { EXECUTABLE_ACTION_TYPES } from '../actions/types';
 import { resolveConsequences } from '../consequences/resolveConsequences';
 import { CONSEQUENCE_RESOLUTION_STATUS } from '../consequences/types';
-import { executeRewardAction } from '../rewards/executeRewardAction';
+import { executeDecision, isSameDecisionAction } from '../decisions/decisions';
 import { getMovableCharacters } from '../rules/movableCharacters/movableCharacters';
 import { getAvailableRollFiveActions } from '../rules/rollFive/rollFive';
 import { getAvailableRollSixActions } from '../rules/rollSix/rollSix';
@@ -37,8 +37,13 @@ function assertPhase(turnState, phase) {
   }
 }
 
-function createNormalMovementActions({ factionId, steps, characters }) {
-  const { movableCharacters } = getMovableCharacters({ factionId, steps, characters });
+function createNormalMovementActions({ state, factionId, steps, characters }) {
+  const { movableCharacters } = getMovableCharacters({
+    factionId,
+    steps,
+    characters,
+    gameState: state,
+  });
 
   return movableCharacters.map(({ characterId, movement }) => ({
     type: EXECUTABLE_ACTION_TYPES.NORMAL_MOVEMENT,
@@ -51,14 +56,14 @@ function getAvailableDiceActions({ state, factionId, roll }) {
   const characters = getCharactersFromState(state);
 
   if (roll === 5) {
-    return getAvailableRollFiveActions({ factionId, characters }).availableActions;
+    return getAvailableRollFiveActions({ factionId, characters, gameState: state }).availableActions;
   }
 
   if (roll === 6) {
-    return getAvailableRollSixActions({ factionId, characters }).availableActions;
+    return getAvailableRollSixActions({ factionId, characters, gameState: state }).availableActions;
   }
 
-  return createNormalMovementActions({ factionId, steps: roll, characters });
+  return createNormalMovementActions({ state, factionId, steps: roll, characters });
 }
 
 function finishTurn({ turnState, reason, events }) {
@@ -67,9 +72,9 @@ function finishTurn({ turnState, reason, events }) {
     phase: TURN_PHASES.ENDED,
     currentRoll: null,
     availableActions: [],
-    pendingReward: null,
-    availableRewardActions: [],
-    remainingRewards: [],
+    pendingDecision: null,
+    availableDecisionActions: [],
+    pendingConsequences: [],
     events: [...turnState.events, ...events.map(cloneValue)],
     endReason: reason,
     afterConsequences: null,
@@ -82,23 +87,23 @@ function waitForNextRoll({ turnState, events }) {
     phase: TURN_PHASES.WAITING_FOR_ROLL,
     currentRoll: null,
     availableActions: [],
-    pendingReward: null,
-    availableRewardActions: [],
-    remainingRewards: [],
+    pendingDecision: null,
+    availableDecisionActions: [],
+    pendingConsequences: [],
     events: [...turnState.events, ...events.map(cloneValue)],
     endReason: null,
     afterConsequences: null,
   };
 }
 
-function createChoiceRequiredTurnState({ turnState, resolution }) {
+function createDecisionRequiredTurnState({ turnState, resolution }) {
   return {
     ...turnState,
-    phase: TURN_PHASES.WAITING_FOR_REWARD_CHOICE,
+    phase: TURN_PHASES.WAITING_FOR_DECISION,
     availableActions: [],
-    pendingReward: cloneValue(resolution.pendingReward),
-    availableRewardActions: resolution.availableActions.map(cloneValue),
-    remainingRewards: resolution.remainingRewards.map(cloneValue),
+    pendingDecision: cloneValue(resolution.pendingDecision),
+    availableDecisionActions: resolution.availableDecisionActions.map(cloneValue),
+    pendingConsequences: resolution.pendingConsequences.map(cloneValue),
     events: [...turnState.events, ...resolution.events.map(cloneValue)],
     endReason: null,
   };
@@ -120,13 +125,13 @@ function resolveTurnConsequences({
   state,
   turnState,
   events,
-  remainingRewards = [],
+  pendingConsequences = [],
   shouldStopConsequences = null,
 }) {
   const resolution = resolveConsequences({
     state,
     events,
-    remainingRewards,
+    pendingConsequences,
     shouldStop: shouldStopConsequences,
   });
 
@@ -143,10 +148,10 @@ function resolveTurnConsequences({
     };
   }
 
-  if (resolution.status === CONSEQUENCE_RESOLUTION_STATUS.CHOICE_REQUIRED) {
+  if (resolution.status === CONSEQUENCE_RESOLUTION_STATUS.DECISION_REQUIRED) {
     return {
       state: resolution.state,
-      turnState: createChoiceRequiredTurnState({ turnState, resolution }),
+      turnState: createDecisionRequiredTurnState({ turnState, resolution }),
       events: resolution.events.map(cloneValue),
     };
   }
@@ -191,9 +196,9 @@ export function registerTurnRoll({ state, turnState, roll }) {
     consecutiveSixes,
     currentRoll: roll,
     availableActions: [],
-    pendingReward: null,
-    availableRewardActions: [],
-    remainingRewards: [],
+    pendingDecision: null,
+    availableDecisionActions: [],
+    pendingConsequences: [],
     endReason: null,
   };
 
@@ -283,24 +288,24 @@ export function executeTurnAction({ state, turnState, action, choice, shouldStop
   });
 }
 
-export function executeTurnRewardAction({ state, turnState, action, shouldStopConsequences = null }) {
-  assertPhase(turnState, TURN_PHASES.WAITING_FOR_REWARD_CHOICE);
+export function executeTurnDecision({ state, turnState, action, shouldStopConsequences = null }) {
+  assertPhase(turnState, TURN_PHASES.WAITING_FOR_DECISION);
 
-  if (!findAvailableAction(turnState.availableRewardActions, action)) {
-    throw new Error('Reward action is not available for the current turn.');
+  if (!turnState.availableDecisionActions.some((candidate) => isSameDecisionAction(candidate, action))) {
+    throw new Error('Decision action is not available for the current turn.');
   }
 
-  const rewardResult = executeRewardAction({
+  const decisionResult = executeDecision({
     state,
-    reward: turnState.pendingReward,
+    decision: turnState.pendingDecision,
     action,
   });
 
   return resolveTurnConsequences({
-    state: rewardResult.state,
+    state: decisionResult.state,
     turnState,
-    events: rewardResult.events,
-    remainingRewards: turnState.remainingRewards,
+    events: decisionResult.events,
+    pendingConsequences: turnState.pendingConsequences,
     shouldStopConsequences,
   });
 }

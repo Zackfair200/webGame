@@ -2,20 +2,34 @@ import {
   DESTINATION_FAILURE_REASONS,
   DESTINATION_OUTCOME_TYPES,
   FACTION_IDS,
+  MOVEMENT_TYPES,
   POSITION_TYPES,
+  SAFE_SQUARES,
   createCommonPosition,
   createFinalLanePosition,
   createGoalPosition,
   createHomePosition,
+  createRulesContext,
   evaluateDestination,
 } from '../../index';
 
-function createCharacter({ id, factionId, position }) {
+function createCharacter({ id, characterId, factionId, position }) {
   return {
     id,
+    ...(characterId ? { characterId } : {}),
     factionId,
     position,
   };
+}
+
+function createRulesContextFor({ characters, actorCharacterId, movementType }) {
+  return createRulesContext({
+    gameState: {
+      players: [{ characters }],
+    },
+    actorCharacterId,
+    movementType,
+  });
 }
 
 function createMovingCharacter(overrides = {}) {
@@ -197,6 +211,84 @@ describe('evaluateDestination', () => {
       );
     });
 
+    test('assassin captures one enemy on a safe destination without changing SAFE', () => {
+      const destination = createCommonPosition(12);
+      const characters = [
+        createMovingCharacter({ id: 'red.assassin', characterId: 'assassin' }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: destination }),
+      ];
+      const rulesContext = createRulesContextFor({
+        characters,
+        actorCharacterId: 'red.assassin',
+        movementType: MOVEMENT_TYPES.NORMAL,
+      });
+
+      expect(evaluateDestination({
+        movingCharacterId: 'red.assassin',
+        destination,
+        characters,
+        rulesContext,
+      })).toEqual({
+        legal: true,
+        outcome: {
+          type: DESTINATION_OUTCOME_TYPES.CAPTURE,
+          capturedCharacterId: 'blue.1',
+        },
+        destination,
+      });
+      expect(SAFE_SQUARES).toContain(destination.square);
+    });
+
+    test('ranger still shares a safe destination with one enemy', () => {
+      const destination = createCommonPosition(12);
+      const characters = [
+        createMovingCharacter({
+          id: 'green.ranger',
+          characterId: 'ranger',
+          factionId: FACTION_IDS.GREEN,
+        }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: destination }),
+      ];
+      const rulesContext = createRulesContextFor({
+        characters,
+        actorCharacterId: 'green.ranger',
+        movementType: MOVEMENT_TYPES.NORMAL,
+      });
+
+      expect(evaluateDestination({
+        movingCharacterId: 'green.ranger',
+        destination,
+        characters,
+        rulesContext,
+      }).outcome).toEqual({
+        type: DESTINATION_OUTCOME_TYPES.SAFE_SHARE,
+        occupantCharacterId: 'blue.1',
+      });
+    });
+
+    test.each([MOVEMENT_TYPES.FORCED_DISPLACEMENT, MOVEMENT_TYPES.SPECIAL_TRAVERSAL])(
+      'assassin keeps SAFE sharing during %s',
+      (movementType) => {
+        const destination = createCommonPosition(12);
+        const characters = [
+          createMovingCharacter({ id: 'red.assassin', characterId: 'assassin' }),
+          createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: destination }),
+        ];
+        const rulesContext = createRulesContextFor({
+          characters,
+          actorCharacterId: 'red.assassin',
+          movementType,
+        });
+
+        expect(evaluateDestination({
+          movingCharacterId: 'red.assassin',
+          destination,
+          characters,
+          rulesContext,
+        }).outcome.type).toBe(DESTINATION_OUTCOME_TYPES.SAFE_SHARE);
+      },
+    );
+
     test('treats a start square as safe when sharing with one enemy', () => {
       const destination = createCommonPosition(5);
       const characters = [
@@ -233,6 +325,31 @@ describe('evaluateDestination', () => {
           destination: createCommonPosition(10),
         },
       );
+    });
+
+    test('assassin cannot capture or land on a two-enemy safe barrier', () => {
+      const destination = createCommonPosition(12);
+      const characters = [
+        createMovingCharacter({ id: 'red.assassin', characterId: 'assassin' }),
+        createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: destination }),
+        createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: destination }),
+      ];
+      const rulesContext = createRulesContextFor({
+        characters,
+        actorCharacterId: 'red.assassin',
+        movementType: MOVEMENT_TYPES.NORMAL,
+      });
+
+      expect(evaluateDestination({
+        movingCharacterId: 'red.assassin',
+        destination,
+        characters,
+        rulesContext,
+      })).toEqual({
+        legal: false,
+        reason: DESTINATION_FAILURE_REASONS.DESTINATION_FULL,
+        destination,
+      });
     });
 
     test('rejects two different-faction occupants on a safe common destination as full', () => {

@@ -1,6 +1,8 @@
 import { SAFE_SQUARES } from '../../board/board';
+import { canCaptureEnemyOnSafeDestination } from '../../abilities/abilityModifiers';
 import { getFactionIds } from '../../factions/factions';
 import { assertCharactersArray, getOccupantsAtPosition } from '../../occupancy/occupancy';
+import { assertRulesContextActor } from '../../rulesContext/rulesContext';
 import { POSITION_TYPES, clonePosition, isPlayablePosition, isValidPosition } from '../../state/positions';
 
 export const DESTINATION_OUTCOME_TYPES = Object.freeze({
@@ -55,6 +57,16 @@ function createDestinationFullResult(destination) {
   };
 }
 
+function createCaptureResult({ destination, capturedCharacterId }) {
+  return createLegalResult({
+    destination,
+    outcome: {
+      type: DESTINATION_OUTCOME_TYPES.CAPTURE,
+      capturedCharacterId,
+    },
+  });
+}
+
 function assertDestinationCanReceiveFaction(destination, factionId) {
   if (destination.type === POSITION_TYPES.FINAL_LANE && destination.factionId !== factionId) {
     throw new Error('Destination final lane does not match moving character faction.');
@@ -82,10 +94,16 @@ function assertRelevantOccupantsAreConsistent({ destination, occupants, movingFa
   }
 }
 
-export function evaluateDestination({ movingCharacterId, destination, characters }) {
+export function evaluateDestination({
+  movingCharacterId,
+  destination,
+  characters,
+  rulesContext = null,
+}) {
   assertCharactersArray(characters);
 
   const movingCharacter = getMovingCharacterById({ movingCharacterId, characters });
+  assertRulesContextActor({ actor: movingCharacter, rulesContext });
   assertValidCharacterFaction(movingCharacter.factionId, 'Invalid moving character faction id');
 
   if (!isValidPosition(destination)) {
@@ -151,6 +169,13 @@ export function evaluateDestination({ movingCharacterId, destination, characters
   }
 
   if (isSafeCommonDestination(destination)) {
+    if (canCaptureEnemyOnSafeDestination({ rulesContext })) {
+      return createCaptureResult({
+        destination,
+        capturedCharacterId: occupant.id,
+      });
+    }
+
     return createLegalResult({
       destination,
       outcome: {
@@ -160,11 +185,8 @@ export function evaluateDestination({ movingCharacterId, destination, characters
     });
   }
 
-  return createLegalResult({
+  return createCaptureResult({
     destination,
-    outcome: {
-      type: DESTINATION_OUTCOME_TYPES.CAPTURE,
-      capturedCharacterId: occupant.id,
-    },
+    capturedCharacterId: occupant.id,
   });
 }

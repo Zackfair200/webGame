@@ -43,12 +43,17 @@ function assertActionAvailable(availableAction) {
   }
 }
 
-function revalidateNormalRollAction({ factionId, roll, action, characters }) {
+function revalidateNormalRollAction({ state, factionId, roll, action, characters }) {
   if (action.type !== EXECUTABLE_ACTION_TYPES.NORMAL_MOVEMENT) {
     throw new Error('Action is not available for the current state.');
   }
 
-  const { movableCharacters } = getMovableCharacters({ factionId, steps: roll, characters });
+  const { movableCharacters } = getMovableCharacters({
+    factionId,
+    steps: roll,
+    characters,
+    gameState: state,
+  });
   const movableCharacter = movableCharacters.find(
     (candidate) => candidate.characterId === action.characterId,
   );
@@ -65,8 +70,8 @@ function revalidateNormalRollAction({ factionId, roll, action, characters }) {
   };
 }
 
-function revalidateRollFiveAction({ factionId, action, characters }) {
-  const result = getAvailableRollFiveActions({ factionId, characters });
+function revalidateRollFiveAction({ state, factionId, action, characters }) {
+  const result = getAvailableRollFiveActions({ factionId, characters, gameState: state });
   const availableAction = findAvailableAction({ availableActions: result.availableActions, action });
 
   assertActionAvailable(availableAction);
@@ -78,8 +83,8 @@ function revalidateRollFiveAction({ factionId, action, characters }) {
   };
 }
 
-function revalidateRollSixAction({ factionId, action, characters }) {
-  const result = getAvailableRollSixActions({ factionId, characters });
+function revalidateRollSixAction({ state, factionId, action, characters }) {
+  const result = getAvailableRollSixActions({ factionId, characters, gameState: state });
   const availableAction = findAvailableAction({ availableActions: result.availableActions, action });
 
   assertActionAvailable(availableAction);
@@ -91,18 +96,18 @@ function revalidateRollSixAction({ factionId, action, characters }) {
   };
 }
 
-export function revalidateAction({ factionId, roll, action, characters }) {
+export function revalidateAction({ state, factionId, roll, action, characters }) {
   assertValidFactionId(factionId);
   assertSupportedRoll(roll);
   assertValidAction(action);
 
   if (roll >= 1 && roll <= 4) {
-    return revalidateNormalRollAction({ factionId, roll, action, characters });
+    return revalidateNormalRollAction({ state, factionId, roll, action, characters });
   }
 
   if (roll === 5) {
-    return revalidateRollFiveAction({ factionId, action, characters });
+    return revalidateRollFiveAction({ state, factionId, action, characters });
   }
 
-  return revalidateRollSixAction({ factionId, action, characters });
+  return revalidateRollSixAction({ state, factionId, action, characters });
 }

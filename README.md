@@ -122,7 +122,7 @@ No esta implementado todavia:
 - premios +10 y +20;
 - tres seises consecutivos;
 - condicion de victoria;
-- habilidades de personajes;
+- habilidades de personajes no documentadas expresamente en la seccion de personajes;
 - persistencia o multijugador.
 
 ## Principio Arquitectonico del Motor
@@ -177,12 +177,52 @@ Cada faccion tiene exactamente cuatro personajes exclusivos. Los personajes son 
 - Montaraz
 - Hada
 
+#### Montaraz: Paso entre barreras
+
+`Paso entre barreras` es una habilidad pasiva y permanente del Montaraz.
+
+El Montaraz puede atravesar barreras aliadas o enemigas situadas en posiciones intermedias de su recorrido. Atravesar una barrera no la destruye ni modifica: los dos personajes que la forman permanecen en su posicion.
+
+La habilidad no permite terminar un movimiento sobre una barrera ni evita ninguna restriccion de destino. La ocupacion maxima, las capturas, los seguros, HOME, META, las rectas finales y el rebote se resuelven mediante las reglas normales.
+
+La excepcion se aplica a los movimientos ordinarios originados por una tirada (`normal`) y a los movimientos de recompensa (`reward`), porque ambos recorren el tablero casilla por casilla. No modifica `forcedDisplacement` ni `specialTraversal`.
+
+La habilidad ignora exclusivamente el bloqueo de recorrido producido por barreras. No ignora ni neutraliza enredaderas, hielo, trampas ni ningun otro `terrainEffect` aplicable.
+
+#### Druida: Enredaderas
+
+`Enredaderas` es una habilidad pasiva y permanente con activacion opcional despues de completar un movimiento `normal` o `reward` del Druida. Si la activacion es valida, el jugador puede activarla u omitirla mediante una decision calculada por el motor.
+
+El Druida dispone de 2 cargas por vida. Activar la habilidad consume exactamente 1 carga y coloca una Enredadera en la posicion final real del movimiento. Puede mantener como maximo 2 Enredaderas activas y no puede colocar otra Enredadera propia en una posicion que ya contenga una suya. Con 0 cargas, con el maximo activo alcanzado, sobre una posicion no jugable o ante un duplicado propio no se genera la decision y no se consume ninguna carga.
+
+Las Enredaderas pueden colocarse en posiciones jugables comunes o de recta final. HOME y META no son posiciones jugables para terrain effects. Cada Enredadera es un `terrainEffect` persistente, tipado y serializable que conserva su posicion, el Druida de origen y la faccion propietaria.
+
+Una Enredadera no afecta a personajes de su faccion. Cuando un enemigo entra, pasa o aterriza sobre ella durante un movimiento `normal` o `reward`, el recorrido se interrumpe exactamente en esa posicion, se descartan los pasos restantes y se consume solo la Enredadera activada. No deja ningun estado en el personaje y no se aplica a `forcedDisplacement`, `specialTraversal` ni `EXIT_HOME`.
+
+Antes de resolver una interrupcion por Enredaderas, el recorrido completo solicitado y su destino teorico deben ser legales segun las reglas base. Una Enredadera puede interrumpir un movimiento legal, pero nunca convertir en legal un movimiento bloqueado por una barrera posterior u otra restriccion del destino teorico. Despues de la interrupcion, su posicion se resuelve como destino efectivo mediante las mismas reglas ordinarias de ocupacion, barreras, seguros y captura. La Enredadera no captura por si misma, no envia a HOME, no produce dano y no crea ni destruye barreras. Una barrera situada en el destino efectivo sigue haciendo ilegal ese movimiento. `Paso entre barreras` no permite al Montaraz ignorar Enredaderas, y `Captura en tabernas` sigue aplicandose al Asesino si la interrupcion produce un destino seguro con una captura legal.
+
+Cuando el Druida es capturado mediante un evento `characterCaptured`, vuelve a HOME por la regla normal, recupera sus 2 cargas y se eliminan todas las Enredaderas creadas por ese Druida. No se eliminan terrain effects de otros propietarios. Otros retornos a HOME, incluida la penalizacion por tres 6 o una eliminacion durante salida, no recargan la habilidad ni limpian sus Enredaderas. La captura del Druida conserva la recompensa base de +20 para la faccion capturadora.
+
 ### Faccion Roja
 
 - Mago de fuego
 - Guerrero
 - Herrero
 - Asesino
+
+#### Asesino: Captura en tabernas
+
+`Captura en tabernas` es una habilidad pasiva y permanente del Asesino.
+
+Las tabernas son las casillas seguras definidas por `SAFE_SQUARES`. Cuando el Asesino termina legalmente un movimiento sobre una casilla segura ocupada por exactamente un enemigo, captura a ese enemigo en lugar de coexistir con el mediante la regla base de seguro.
+
+La habilidad se aplica a movimientos `normal` y `reward`, porque ambos utilizan las reglas ordinarias de destino y captura. No se aplica a `forcedDisplacement`, `specialTraversal` ni `EXIT_HOME`.
+
+La excepcion solo se consulta para la casilla final. Pasar sobre un enemigo situado en una casilla segura no produce captura.
+
+La casilla conserva su condicion de segura. La habilidad no modifica `SAFE_SQUARES`, no afecta a otros personajes y no concede inmunidad ni proteccion al Asesino.
+
+La habilidad no permite atravesar barreras, aterrizar sobre dos ocupantes, superar la ocupacion maxima ni destruir una barrera. Una captura realizada en una casilla segura produce el evento `characterCaptured` ordinario y concede la recompensa base de +20 a la faccion Roja mediante el sistema normal de `movementReward`.
 
 ### Faccion Azul
 
@@ -191,6 +231,22 @@ Cada faccion tiene exactamente cuatro personajes exclusivos. Los personajes son 
 - Alquimista
 - Clerigo
 
+#### Mago de hielo: Congelacion
+
+`Congelacion` es una habilidad pasiva y permanente con activacion opcional despues de completar un movimiento `normal` o `reward` del Mago de hielo. Dispone de 2 cargas por vida y cada activacion consume exactamente 1 carga. `forcedDisplacement`, `specialTraversal` y `EXIT_HOME` no permiten activarla.
+
+La habilidad se aplica sobre la posicion inmediatamente anterior del recorrido real completado. Esa posicion se deriva del path efectivo resuelto por el motor, nunca mediante aritmetica sobre el numero de casilla ni mediante el destino teorico. En un movimiento de un paso la posicion anterior es el origen. Si terrain interrumpe el movimiento se utiliza el recorrido truncado real. Si no existe una posicion anterior jugable, no quedan cargas o la ocupacion no permite una aplicacion definida, no se ofrece la activacion.
+
+Si la posicion anterior esta vacia, activar `Congelacion` crea un `terrainEffect` de tipo `ice` asociado al Mago, su faccion, la habilidad y la posicion. Si contiene un unico enemigo identificable, aunque comparta una casilla segura con un aliado Azul, la activacion aplica `frozen` directamente a ese enemigo sin capturarlo, desplazarlo ni crear Hielo persistente. Si solo contiene aliados, la activacion no esta disponible. Si contiene dos enemigos, el jugador elige mediante acciones autoritativas cual recibe `frozen`; no se congela a ambos con una sola carga.
+
+El Hielo no afecta a aliados de su faccion. El primer enemigo que entra, pasa o aterriza en su posicion durante un movimiento `normal` o `reward` se detiene exactamente alli, pierde los pasos restantes, recibe `frozen` y consume ese Hielo. Hielo y Enredaderas son terrain effects independientes y se resuelve solamente el primer efecto hostil aplicable segun el orden del recorrido. Antes de cualquier interrupcion se valida el recorrido solicitado completo y su destino teorico: terrain puede interrumpir un movimiento legal, pero nunca convertir uno ilegal en legal.
+
+`Frozen` es un estado persistente, serializable y no acumulable asociado al personaje afectado. Modifica exclusivamente su siguiente movimiento `normal`: los pasos efectivos son `ceil(resultadoDelDado / 2)`, por lo que 1→1, 2→1, 3→2, 4→2, 5→3 y 6→3. Esos pasos efectivos recorren despues el flujo normal de barreras, destinos, SAFE, capturas y terrain. Evaluar movimientos, calcular acciones disponibles o revalidar no consume el estado; se elimina unicamente al ejecutar autoritativamente el movimiento normal que realmente utilizo la reduccion. Si durante ese movimiento el personaje activa otro Hielo, el estado anterior se consume y el nuevo `frozen` queda aplicado sin stacks.
+
+Los movimientos `reward`, `forcedDisplacement`, `specialTraversal`, movimientos especiales y `EXIT_HOME` no reducen sus pasos ni consumen `frozen`. El resultado original del dado se conserva para salida con 5, repeticion por 6, seises consecutivos y cualquier regla externa al desplazamiento; por ejemplo, un 6 mueve 3 a un personaje congelado pero sigue siendo un 6 para el turno.
+
+Cuando el Mago de hielo es capturado recupera sus 2 cargas y se eliminan exclusivamente los Hielos persistentes creados por ese Mago. Los estados `frozen` que ya hubiera aplicado a enemigos no desaparecen por su captura y permanecen hasta ser consumidos por el siguiente movimiento normal de cada afectado.
+
 ### Faccion Amarilla
 
 - Paladin
@@ -198,7 +254,7 @@ Cada faccion tiene exactamente cuatro personajes exclusivos. Los personajes son 
 - Ladron
 - Ingeniero
 
-Cada personaje tendra posteriormente una habilidad propia. Las habilidades no deben implementarse todavia.
+El resto de habilidades de personaje se definira e implementara de forma incremental. No debe asumirse ninguna habilidad que no este documentada expresamente en este README.
 
 El motor debe diseñarse sabiendo que una ficha no es simplemente un token generico: representa un personaje con identidad propia y podra tener reglas o modificadores particulares.
 
@@ -303,7 +359,7 @@ Una casilla puede contener como maximo dos personajes. Esto se aplica tambien a 
 
 Dos personajes de la misma faccion pueden compartir una casilla. Cuando lo hacen forman una barrera.
 
-En una casilla segura pueden coexistir dos personajes de facciones diferentes sin que se produzca una captura.
+En una casilla segura pueden coexistir dos personajes de facciones diferentes sin que se produzca una captura. La excepcion es `Captura en tabernas`: el Asesino captura cuando termina un movimiento `normal` o `reward` sobre exactamente un enemigo en esa casilla.
 
 En una casilla normal, dos personajes enemigos no pueden coexistir.
 
@@ -321,7 +377,7 @@ Las barreras bloquean tambien a personajes de la misma faccion.
 
 El motor debe comprobar todo el recorrido del movimiento y no unicamente la casilla de destino.
 
-Las unicas excepciones actualmente definidas son la salida obligatoria por obtener un 5 y futuras habilidades que indiquen explicitamente que pueden ignorar alguna regla de barreras.
+Las excepciones actualmente definidas son la salida obligatoria por obtener un 5 y `Paso entre barreras` del Montaraz, limitada a barreras situadas en posiciones intermedias de movimientos `normal` o `reward`.
 
 ## Barreras y Tirada de 6
 
@@ -411,7 +467,7 @@ Por tanto, al buscar el personaje que debe ser penalizado, siempre se consulta e
 
 ## Capturas
 
-Por regla base, una captura ocurre unicamente cuando un personaje termina su movimiento en una casilla normal ocupada por un personaje enemigo.
+Por regla base, una captura ocurre unicamente cuando un personaje termina su movimiento en una casilla normal ocupada por un personaje enemigo. `Captura en tabernas` permite al Asesino producir esa misma captura ordinaria cuando el destino final es una casilla segura ocupada por exactamente un enemigo.
 
 Pasar por encima de un personaje enemigo durante un movimiento no provoca captura.
 
@@ -420,17 +476,29 @@ Las habilidades podran crear excepciones a esta regla.
 Cuando se produce una captura:
 
 - el personaje capturado vuelve a casa;
-- el personaje que realizo la captura obtiene una recompensa base de +20 movimientos.
+- la faccion que realizo la captura obtiene una recompensa base de +20 movimientos.
 
-Los +20 pertenecen obligatoriamente al mismo personaje que realizo la captura. No pueden transferirse a otro personaje.
+Los +20 pertenecen a la faccion capturadora, no obligatoriamente al personaje que realizo la captura.
+
+El jugador debe elegir que personaje propio valido recibe los +20.
+
+Si solo existe un destinatario valido, la recompensa puede resolverse automaticamente con ese personaje.
+
+Si existen varios destinatarios validos, el motor debe solicitar una eleccion.
+
+Si no existe ningun destinatario valido, la recompensa se pierde por completo y no se almacena para utilizarla posteriormente.
+
+Los personajes en casa y los personajes que ya estan en META no pueden recibir esta recompensa.
+
+Los enemigos nunca pueden recibir la recompensa de +20.
 
 El movimiento de recompensa es un movimiento real y debe respetar barreras, seguros, rectas finales, rebote, ocupacion maxima y demas reglas del motor.
 
 La recompensa de +20 constituye un único movimiento indivisible.
 
-El personaje que realizó la captura debe poder realizar legalmente los +20 movimientos completos. Los +20 no pueden realizarse parcialmente ni repartirse entre varios personajes.
+El personaje elegido debe poder realizar legalmente los 20 movimientos completos. Los +20 no pueden realizarse parcialmente ni repartirse entre varios personajes.
 
-Si el personaje que realizó la captura no puede completar legalmente los +20 movimientos, la recompensa se pierde por completo y no se almacena para utilizarla posteriormente.
+No existe fallback de 20 -> 19 -> 18 -> ... -> 1. Si un personaje no puede ejecutar legalmente el movimiento exacto de 20, no es destinatario valido para esa recompensa.
 
 Los movimientos de recompensa pueden provocar nuevas capturas. Las capturas pueden encadenarse sin un limite artificial.
 
@@ -559,9 +627,9 @@ Los eventos ya producidos antes de detectar la victoria se conservan.
 
 No existe actualmente ninguna condicion adicional de victoria.
 
-## Habilidades y Excepciones Futuras
+## Habilidades y Excepciones
 
-Las habilidades de los personajes se diseñaran en una fase posterior.
+Las habilidades de los personajes se diseñan e implementan de forma incremental. Las habilidades implementadas son `Paso entre barreras` del Montaraz, `Captura en tabernas` del Asesino, `Enredaderas` del Druida y `Congelacion` del Mago de hielo, definidas en la seccion de personajes.
 
 El motor debe prepararse para que una habilidad pueda modificar reglas concretas sin duplicar o reescribir el motor completo.
 
@@ -572,7 +640,7 @@ Ejemplos conceptuales de futuras excepciones:
 - un personaje podria interactuar de forma especial con barreras;
 - un personaje podria modificar determinadas reglas de movimiento.
 
-Estos ejemplos no significan que dichas habilidades esten aprobadas ni deben implementarse ahora. Solo ilustran el tipo de extensibilidad que debera soportar el motor.
+Estos ejemplos, salvo las habilidades documentadas expresamente como reglas oficiales, no significan que otras habilidades esten aprobadas ni deban implementarse. Solo ilustran el tipo de extensibilidad que debera soportar el motor.
 
 La regla general sera:
 
@@ -657,4 +725,4 @@ Estas ideas siguen siendo utiles como inspiracion visual y de producto, pero no 
 
 La documentacion anterior tambien mencionaba Unity y C# como tecnologia objetivo. Esa informacion queda superada por el estado tecnico actual: el proyecto existente usa React en frontend y NestJS en backend.
 
-La lista antigua de personajes y habilidades queda superada por las facciones y personajes definidos en este README. Las habilidades concretas se diseñaran mas adelante.
+La lista antigua de personajes y habilidades queda superada por las facciones, personajes y habilidades definidos expresamente en este README. Las habilidades restantes se diseñaran mas adelante.

@@ -476,6 +476,28 @@ describe('checkPathBlockedByBarrier', () => {
     });
   });
 
+  test('continues scanning after a passable barrier and still blocks at destination', () => {
+    const characters = [
+      createCharacter({ id: 'green.ranger', factionId: FACTION_IDS.GREEN, position: createCommonPosition(9) }),
+      createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(11) }),
+      createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(11) }),
+      createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(13) }),
+      createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(13) }),
+    ];
+
+    expect(checkPathBlockedByBarrier({
+      path: [createCommonPosition(10), createCommonPosition(11), createCommonPosition(12), createCommonPosition(13)],
+      characters,
+      movingCharacterId: 'green.ranger',
+      canPassBarrier: () => true,
+    })).toEqual({
+      blocked: true,
+      reason: 'barrier',
+      position: createCommonPosition(13),
+      pathIndex: 3,
+    });
+  });
+
   test('excludes the moving character from path occupancy evaluation', () => {
     const characters = [
       createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),

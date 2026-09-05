@@ -10,12 +10,12 @@ import {
   createHomePosition,
   createTurnState,
   executeTurnAction,
-  executeTurnRewardAction,
+  executeTurnDecision,
   registerTurnRoll,
 } from '../index';
 
-function createCharacter({ id, factionId, position }) {
-  return { id, factionId, position };
+function createCharacter({ id, characterId, factionId, position }) {
+  return { id, ...(characterId ? { characterId } : {}), factionId, position };
 }
 
 function createState(characters) {
@@ -78,6 +78,13 @@ function createRedTurn(overrides = {}) {
   };
 }
 
+function createGreenTurn(overrides = {}) {
+  return {
+    ...createTurnState({ playerId: 'player-green', factionId: FACTION_IDS.GREEN }),
+    ...overrides,
+  };
+}
+
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
     return value;
@@ -97,9 +104,9 @@ describe('turn flow', () => {
       consecutiveSixes: 0,
       currentRoll: null,
       availableActions: [],
-      pendingReward: null,
-      availableRewardActions: [],
-      remainingRewards: [],
+      pendingDecision: null,
+      availableDecisionActions: [],
+      pendingConsequences: [],
       diceMoveHistory: [],
       events: [],
       endReason: null,
@@ -127,6 +134,41 @@ describe('turn flow', () => {
         }),
       },
     ]);
+  });
+
+  test('offers and revalidates only the ranger through an intermediate barrier', () => {
+    const state = createState([
+      createCharacter({
+        id: 'green.ranger',
+        characterId: 'ranger',
+        factionId: FACTION_IDS.GREEN,
+        position: createCommonPosition(9),
+      }),
+      createCharacter({
+        id: 'green.druid',
+        characterId: 'druid',
+        factionId: FACTION_IDS.GREEN,
+        position: createCommonPosition(9),
+      }),
+      createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(11) }),
+      createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(11) }),
+    ]);
+    const rollResult = registerTurnRoll({ state, turnState: createGreenTurn(), roll: 4 });
+
+    expect(rollResult.turnState.availableActions.map((action) => action.characterId)).toEqual([
+      'green.ranger',
+    ]);
+
+    const actionResult = executeTurnAction({
+      state,
+      turnState: rollResult.turnState,
+      action: rollResult.turnState.availableActions[0],
+    });
+
+    expect(getCharacter(actionResult.state, 'green.ranger').position).toEqual(createCommonPosition(13));
+    expect(getCharacter(actionResult.state, 'green.druid').position).toEqual(createCommonPosition(9));
+    expect(getCharacter(actionResult.state, 'blue.1').position).toEqual(createCommonPosition(11));
+    expect(getCharacter(actionResult.state, 'blue.2').position).toEqual(createCommonPosition(11));
   });
 
   test('ends a non-six roll when no legal action exists', () => {
@@ -275,6 +317,8 @@ describe('turn flow', () => {
       createCharacter({ id: 'red.1', factionId: FACTION_IDS.RED, position: createCommonPosition(54) }),
       createCharacter({ id: 'red.2', factionId: FACTION_IDS.RED, position: createCommonPosition(10) }),
       createCharacter({ id: 'blue.1', factionId: FACTION_IDS.BLUE, position: createCommonPosition(60) }),
+      createCharacter({ id: 'blue.2', factionId: FACTION_IDS.BLUE, position: createCommonPosition(25) }),
+      createCharacter({ id: 'blue.3', factionId: FACTION_IDS.BLUE, position: createCommonPosition(25) }),
     ]);
     const rollResult = registerTurnRoll({ state, turnState: createRedTurn(), roll: 6 });
     const actionResult = executeTurnAction({
@@ -308,7 +352,7 @@ describe('turn flow', () => {
       action: rollResult.turnState.availableActions.find((action) => action.characterId === 'red.1'),
     });
 
-    expect(actionResult.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_REWARD_CHOICE);
+    expect(actionResult.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_DECISION);
     expect(() =>
       registerTurnRoll({
         state: actionResult.state,
@@ -317,10 +361,10 @@ describe('turn flow', () => {
       }),
     ).toThrow('Turn phase must be waitingForRoll.');
 
-    const rewardResult = executeTurnRewardAction({
+    const rewardResult = executeTurnDecision({
       state: actionResult.state,
       turnState: actionResult.turnState,
-      action: actionResult.turnState.availableRewardActions.find((action) => action.characterId === 'red.2'),
+      action: actionResult.turnState.availableDecisionActions.find((action) => action.characterId === 'red.2'),
     });
 
     expect(getCharacter(rewardResult.state, 'red.2').position).toEqual(createCommonPosition(20));
@@ -340,17 +384,17 @@ describe('turn flow', () => {
       action: rollResult.turnState.availableActions.find((action) => action.characterId === 'red.1'),
     });
 
-    expect(actionResult.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_REWARD_CHOICE);
+    expect(actionResult.turnState.phase).toBe(TURN_PHASES.WAITING_FOR_DECISION);
     expect(getCharacter(actionResult.state, 'red.1').position).toEqual(createGoalPosition());
-    expect(actionResult.turnState.availableRewardActions.map((action) => action.characterId).sort()).toEqual([
+    expect(actionResult.turnState.availableDecisionActions.map((action) => action.characterId).sort()).toEqual([
       'red.2',
       'red.3',
     ]);
 
-    const rewardResult = executeTurnRewardAction({
+    const rewardResult = executeTurnDecision({
       state: actionResult.state,
       turnState: actionResult.turnState,
-      action: actionResult.turnState.availableRewardActions.find((action) => action.characterId === 'red.2'),
+      action: actionResult.turnState.availableDecisionActions.find((action) => action.characterId === 'red.2'),
     });
 
     expect(getCharacter(rewardResult.state, 'red.2').position).toEqual(createCommonPosition(20));
@@ -449,7 +493,7 @@ describe('turn flow', () => {
           type: 'characterMoved',
           characterId: 'red.1',
           steps: 10,
-          actionType: 'goalReward',
+          actionType: 'movementReward',
         },
       ],
     });
@@ -582,8 +626,8 @@ describe('turn flow', () => {
     expect(() => executeTurnAction({ state, turnState: createRedTurn(), action: {} })).toThrow(
       'Turn phase must be waitingForAction.',
     );
-    expect(() => executeTurnRewardAction({ state, turnState: ended, action: {} })).toThrow(
-      'Turn phase must be waitingForRewardChoice.',
+    expect(() => executeTurnDecision({ state, turnState: ended, action: {} })).toThrow(
+      'Turn phase must be waitingForDecision.',
     );
   });
 
@@ -618,12 +662,12 @@ describe('turn flow', () => {
     const changedState = setCharacterPosition(actionResult.state, 'red.2', createHomePosition());
 
     expect(() =>
-      executeTurnRewardAction({
+      executeTurnDecision({
         state: changedState,
         turnState: actionResult.turnState,
-        action: actionResult.turnState.availableRewardActions.find((action) => action.characterId === 'red.2'),
+        action: actionResult.turnState.availableDecisionActions.find((action) => action.characterId === 'red.2'),
       }),
-    ).toThrow('Action is not available for this reward.');
+    ).toThrow('Action is not available for the pending decision.');
   });
 
   test('third-six penalty preserves structural sharing for unaffected state branches', () => {
@@ -679,8 +723,8 @@ describe('turn flow', () => {
       action: firstRoll.turnState.availableActions.find((action) => action.characterId === 'red.1'),
     });
 
-    firstAction.turnState.pendingReward.steps = 999;
-    firstAction.turnState.availableRewardActions[0].movement.destination.square = 99;
+    firstAction.turnState.pendingDecision.reward.steps = 999;
+    firstAction.turnState.availableDecisionActions[0].movement.destination.square = 99;
 
     const secondRoll = registerTurnRoll({ state, turnState: createRedTurn(), roll: 1 });
     const secondAction = executeTurnAction({
@@ -689,8 +733,8 @@ describe('turn flow', () => {
       action: secondRoll.turnState.availableActions.find((action) => action.characterId === 'red.1'),
     });
 
-    expect(secondAction.turnState.pendingReward.steps).toBe(10);
-    expect(secondAction.turnState.availableRewardActions[0].movement.destination).not.toEqual(createCommonPosition(99));
+    expect(secondAction.turnState.pendingDecision.reward.steps).toBe(10);
+    expect(secondAction.turnState.availableDecisionActions[0].movement.destination).not.toEqual(createCommonPosition(99));
   });
 
   test('does not mutate state or turn state inputs', () => {

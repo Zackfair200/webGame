@@ -1,6 +1,8 @@
 import { getFactionIds } from '../../factions/factions';
 import { assertValidMovementSteps } from '../../movement/validation';
 import { assertCharactersArray } from '../../occupancy/occupancy';
+import { MOVEMENT_SOURCE_TYPES, MOVEMENT_TYPES } from '../../movement/types';
+import { createMovementRulesContext } from '../../rulesContext/rulesContext';
 import { evaluateMovement } from '../legalMovement/legalMovement';
 
 function assertValidFactionId(factionId) {
@@ -9,7 +11,14 @@ function assertValidFactionId(factionId) {
   }
 }
 
-export function getMovableCharacters({ factionId, steps, characters }) {
+export function getMovableCharacters({
+  factionId,
+  steps,
+  characters,
+  gameState = null,
+  movementType = MOVEMENT_TYPES.NORMAL,
+  source = { type: MOVEMENT_SOURCE_TYPES.DICE, roll: steps },
+}) {
   assertCharactersArray(characters);
   assertValidMovementSteps(steps);
   assertValidFactionId(factionId);
@@ -25,6 +34,13 @@ export function getMovableCharacters({ factionId, steps, characters }) {
       characterId: character.id,
       steps,
       characters,
+      rulesContext: createMovementRulesContext({
+        gameState,
+        characters,
+        actorCharacterId: character.id,
+        source,
+        movementType,
+      }),
     });
 
     if (movement.legal) {

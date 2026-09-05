@@ -1,7 +1,7 @@
 import { GAME_PHASES } from '../state/initialState';
 import { createTurnState } from '../turns/turnState';
 import { TURN_PHASES } from '../turns/types';
-import { executeTurnAction, executeTurnRewardAction, registerTurnRoll } from '../turns/turnActions';
+import { executeTurnAction, executeTurnDecision, registerTurnRoll } from '../turns/turnActions';
 import { assertGameFlowInProgress, assertGameStateForFlow } from './gameFlowValidation';
 import { getCurrentPlayer, getNextPlayerId } from './playerOrder';
 import { GAME_STOP_REASONS } from './types';
@@ -152,10 +152,10 @@ export function executeGameAction({ gameFlow, action, choice }) {
   }));
 }
 
-export function executeGameRewardChoice({ gameFlow, action }) {
+export function executeGameDecision({ gameFlow, action }) {
   assertGameFlowInProgress(gameFlow);
 
-  return handleTurnResult(executeTurnRewardAction({
+  return handleTurnResult(executeTurnDecision({
     state: gameFlow.gameState,
     turnState: gameFlow.turnState,
     action,

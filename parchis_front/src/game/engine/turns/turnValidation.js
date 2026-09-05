@@ -1,4 +1,6 @@
 import { getFactionIds } from '../factions/factions';
+import { assertDecision } from '../decisions/decisions';
+import { assertDecisionAction } from '../decisions/decisionActions';
 import {
   TURN_AFTER_CONSEQUENCES,
   TURN_END_REASONS,
@@ -93,8 +95,8 @@ export function assertTurnState(turnState) {
   assertConsecutiveSixesForPhase(turnState);
   assertCurrentRollForPhase(turnState);
   assertArray(turnState.availableActions, 'turnState.availableActions must be an array.');
-  assertArray(turnState.availableRewardActions, 'turnState.availableRewardActions must be an array.');
-  assertArray(turnState.remainingRewards, 'turnState.remainingRewards must be an array.');
+  assertArray(turnState.availableDecisionActions, 'turnState.availableDecisionActions must be an array.');
+  assertArray(turnState.pendingConsequences, 'turnState.pendingConsequences must be an array.');
   assertArray(turnState.diceMoveHistory, 'turnState.diceMoveHistory must be an array.');
   assertArray(turnState.events, 'turnState.events must be an array.');
   assertKnownValueOrNull({
@@ -110,16 +112,24 @@ export function assertTurnState(turnState) {
 
   if (
     (turnState.phase === TURN_PHASES.WAITING_FOR_ACTION ||
-      turnState.phase === TURN_PHASES.WAITING_FOR_REWARD_CHOICE) &&
+      turnState.phase === TURN_PHASES.WAITING_FOR_DECISION) &&
     turnState.afterConsequences === null
   ) {
     throw new Error(`turnState.afterConsequences is required while phase is ${turnState.phase}.`);
   }
 
-  if (turnState.phase === TURN_PHASES.WAITING_FOR_REWARD_CHOICE) {
-    if (!turnState.pendingReward || typeof turnState.pendingReward !== 'object') {
-      throw new Error('turnState.pendingReward is required while waiting for a reward choice.');
+  if (turnState.phase === TURN_PHASES.WAITING_FOR_DECISION) {
+    if (!turnState.pendingDecision || typeof turnState.pendingDecision !== 'object') {
+      throw new Error('turnState.pendingDecision is required while waiting for a decision.');
     }
+
+    assertDecision(turnState.pendingDecision);
+
+    if (turnState.availableDecisionActions.length === 0) {
+      throw new Error('turnState.availableDecisionActions cannot be empty while waiting for a decision.');
+    }
+
+    turnState.availableDecisionActions.forEach(assertDecisionAction);
   }
 
   assertDiceMoveHistory(turnState.diceMoveHistory);

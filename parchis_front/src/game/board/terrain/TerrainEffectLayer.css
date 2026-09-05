@@ -1,0 +1,118 @@
+.game-board__terrain-surface {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.terrain-effect {
+  pointer-events: none;
+}
+
+.terrain-effect__vines-glow {
+  opacity: 0.48;
+  animation: terrain-vines-breathe 4.8s ease-in-out infinite;
+}
+
+.terrain-effect__vines-wash {
+  opacity: 0.58;
+}
+
+.terrain-effect__vines-border {
+  fill: none;
+  stroke: rgba(22, 128, 60, 0.9);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 5 3;
+}
+
+.terrain-effect__vine {
+  fill: none;
+  stroke: #176b38;
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0.92;
+}
+
+.terrain-effect__vine--secondary {
+  stroke: #41a861;
+  stroke-width: 3.5;
+  opacity: 0.82;
+}
+
+.terrain-effect__leaf {
+  fill: #237b43;
+  stroke: rgba(215, 255, 224, 0.72);
+  stroke-width: 1.5;
+}
+
+.terrain-effect__leaf--pale {
+  fill: #65bb78;
+}
+
+.terrain-effect__ice-glow {
+  opacity: 0.4;
+  animation: terrain-ice-shimmer 5.2s ease-in-out infinite;
+}
+
+.terrain-effect__ice-wash {
+  opacity: 0.52;
+}
+
+.terrain-effect__ice-border {
+  fill: none;
+  stroke: rgba(159, 235, 255, 0.88);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-dasharray: 7 4;
+}
+
+.terrain-effect__ice-crystals {
+  fill: none;
+  stroke: rgba(225, 250, 255, 0.88);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.82;
+}
+
+.terrain-effect__ice-frost {
+  stroke: rgba(105, 217, 245, 0.92);
+  stroke-width: 2;
+}
+
+@keyframes terrain-vines-breathe {
+  0%, 100% {
+    opacity: 0.38;
+  }
+
+  50% {
+    opacity: 0.68;
+  }
+}
+
+@keyframes terrain-ice-shimmer {
+  0%, 100% {
+    opacity: 0.32;
+  }
+
+  50% {
+    opacity: 0.54;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terrain-effect__vines-glow {
+    animation: none;
+    opacity: 0.52;
+  }
+
+  .terrain-effect__ice-glow {
+    animation: none;
+    opacity: 0.44;
+  }
+}

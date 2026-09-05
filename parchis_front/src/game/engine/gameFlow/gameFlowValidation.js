@@ -68,6 +68,20 @@ function assertValidTurnOrder(gameState) {
   });
 }
 
+function assertOptionalExtensionState(gameState) {
+  ['characterStatesById', 'factionStatesById', 'terrainEffectsByPositionKey'].forEach((field) => {
+    const value = gameState[field];
+
+    if (value !== undefined && (!value || typeof value !== 'object' || Array.isArray(value))) {
+      throw new Error(`${field} must be an object when provided.`);
+    }
+  });
+
+  if (gameState.globalEffects !== undefined && !Array.isArray(gameState.globalEffects)) {
+    throw new Error('globalEffects must be an array when provided.');
+  }
+}
+
 export function assertGameStateForFlow(gameState) {
   if (!gameState || typeof gameState !== 'object' || Array.isArray(gameState)) {
     throw new Error('gameState must be an object.');
@@ -79,6 +93,7 @@ export function assertGameStateForFlow(gameState) {
 
   assertValidPlayers(gameState.players);
   assertValidTurnOrder(gameState);
+  assertOptionalExtensionState(gameState);
   getCurrentPlayer(gameState);
 
   const winningPlayerId = getWinningPlayerId(gameState);

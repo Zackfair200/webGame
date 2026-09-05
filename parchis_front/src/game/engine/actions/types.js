@@ -12,4 +12,7 @@ export const EXECUTION_EVENT_TYPES = Object.freeze({
   CHARACTER_REMOVED_FROM_START: 'characterRemovedFromStart',
   BARRIER_BROKEN: 'barrierBroken',
   REWARD_LOST: 'rewardLost',
+  TERRAIN_EFFECT_TRIGGERED: 'terrainEffectTriggered',
+  ABILITY_ACTIVATED: 'abilityActivated',
+  ABILITY_ACTIVATION_SKIPPED: 'abilityActivationSkipped',
 });
